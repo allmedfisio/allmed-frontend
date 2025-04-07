@@ -1,0 +1,7 @@
+{
+  "name": "allmed-fisio-manager",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}
