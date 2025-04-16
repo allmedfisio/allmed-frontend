@@ -1,0 +1,30 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Medico</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Inserisci il tuo studio</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-item>
+          <ion-label position="floating">Numero Studio</ion-label>
+          <ion-input type="number" [(ngModel)]="doctorStudy"></ion-input>
+        </ion-item>
+        <ion-button expand="full" (click)="loadPatients()">Carica Pazienti</ion-button>
+      </ion-card-content>
+    </ion-card>
+  
+    <ion-list>
+      <ion-item *ngFor="let patient of patients">
+        <ion-label>
+          <h2>{{ patient.full_name }}</h2>
+          <p>Numero: {{ patient.assigned_number }}</p>
+        </ion-label>
+        <ion-button color="primary" (click)="callPatient(patient.id)">Chiama</ion-button>
+      </ion-item>
+    </ion-list>
+</ion-content>

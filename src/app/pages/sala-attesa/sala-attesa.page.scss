@@ -1,0 +1,17 @@
+.flash-animation {
+    animation: flash 1s ease-in-out infinite alternate;
+  }
+  
+  @keyframes flash {
+    from {
+      background-color: transparent;
+      color: #d32f2f; // Rosso acceso
+      transform: scale(1);
+    }
+    to {
+      background-color: #d32f2f;
+      color: white;
+      transform: scale(1.2);
+    }
+  }
+  

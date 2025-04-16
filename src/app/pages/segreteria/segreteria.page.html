@@ -1,0 +1,77 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-title>Segreteria</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="logout()">Logout</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Aggiungi Paziente</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-item>
+        <ion-label position="floating">Nome e Cognome</ion-label>
+        <ion-input [(ngModel)]="fullName"></ion-input>
+      </ion-item>
+      <ion-item>
+        <ion-label position="floating">Studio Assegnato</ion-label>
+        <ion-input type="number" [(ngModel)]="assignedStudy"></ion-input>
+      </ion-item>
+      <ion-button expand="full" (click)="addPatient()">Aggiungi Paziente</ion-button>
+    </ion-card-content>
+  </ion-card>
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Aggiungi Medico</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-item>
+        <ion-label position="floating">Cognome</ion-label>
+        <ion-input [(ngModel)]="doctorName"></ion-input>
+      </ion-item>
+      <ion-item>
+        <ion-label position="floating">Studio Assegnato</ion-label>
+        <ion-input type="number" [(ngModel)]="doctorStudy"></ion-input>
+      </ion-item>
+      <ion-button expand="full" (click)="addDoctor()">Aggiungi Medico</ion-button>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Pazienti in attesa</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-list>
+        <ion-item *ngFor="let patient of patients">
+          <ion-label>
+            <h2>{{ patient.full_name }}</h2>
+            <p>Studio: {{ patient.assigned_study }} - Numero: {{ patient.assigned_number }}</p>
+          </ion-label>
+          <ion-button color="danger" (click)="removePatient(patient.id)">Rimuovi</ion-button>
+        </ion-item>
+      </ion-list>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Medici Attivi</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-list>
+        <ion-item *ngFor="let doctor of doctors">
+          <ion-label>
+            <h2>{{ doctor.name }} (Studio {{ doctor.study }})</h2>
+            <p>Ultimo paziente chiamato: <strong>{{ doctor.current_patient || 'Nessuno' }}</strong></p>
+          </ion-label>
+          <ion-button color="danger" (click)="removeDoctor(doctor.id)">Rimuovi</ion-button>
+        </ion-item>
+      </ion-list>
+    </ion-card-content>
+  </ion-card>
+</ion-content>
