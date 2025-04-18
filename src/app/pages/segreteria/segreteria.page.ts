@@ -27,7 +27,7 @@ export class SegreteriaPage implements OnInit {
       this.router.navigate(['/login']);
     }
     
-    this.socket = io('http://localhost:5000');  // Assicurati che l'URL sia corretto
+    this.socket = io('https://allmed-backend.onrender.com');  // Assicurati che l'URL sia corretto
     this.loadPatients(token);
     this.loadDoctors(token);
     this.socket.on('patientsUpdated', () => {
@@ -44,7 +44,7 @@ export class SegreteriaPage implements OnInit {
   }
 
   loadPatients(token: any) {
-    this.http.get<any[]>('http://localhost:5000/patients/waiting', {
+    this.http.get<any[]>('https://allmed-backend.onrender.com/patients/waiting', {
       headers: {
         "Authorization": `Bearer ${token}`
       }
@@ -54,7 +54,7 @@ export class SegreteriaPage implements OnInit {
   }
 
   loadDoctors(token: any) {
-    this.http.get<any[]>('http://localhost:5000/doctors/active-doctors', {
+    this.http.get<any[]>('https://allmed-backend.onrender.com/doctors/active-doctors', {
       headers: {
         "Authorization": `Bearer ${token}`
       }
@@ -70,7 +70,7 @@ export class SegreteriaPage implements OnInit {
       this.router.navigate(['/login']);
     }
 
-    this.http.post('http://localhost:5000/patients', {
+    this.http.post('https://allmed-backend.onrender.com/patients', {
       full_name: this.fullName,
       assigned_study: this.assignedStudy
     }, {
@@ -88,7 +88,7 @@ export class SegreteriaPage implements OnInit {
     if (!tokenP) {
       this.router.navigate(['/login']);
     }
-    this.http.delete(`http://localhost:5000/patients/${patientId}`, {
+    this.http.delete(`https://allmed-backend.onrender.com/patients/${patientId}`, {
       headers: {
         "Authorization": `Bearer ${tokenP}`
       }
@@ -103,7 +103,7 @@ export class SegreteriaPage implements OnInit {
     if (!tokenP) {
       this.router.navigate(['/login']);
     }
-    this.http.post('http://localhost:5000/doctors', {
+    this.http.post('https://allmed-backend.onrender.com/doctors', {
       name: this.doctorName,
       study: this.doctorStudy
     }, {
@@ -121,7 +121,7 @@ export class SegreteriaPage implements OnInit {
     if (!tokenP) {
       this.router.navigate(['/login']);
     }
-    this.http.delete(`http://localhost:5000/doctors/${doctorId}`, {
+    this.http.delete(`https://allmed-backend.onrender.com/doctors/${doctorId}`, {
       headers: {
         "Authorization": `Bearer ${tokenP}`
       }

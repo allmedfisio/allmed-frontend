@@ -16,7 +16,7 @@ export class SalaAttesaPage implements OnInit {
   constructor(private http: HttpClient) {}
 
   ngOnInit() {
-    this.socket = io('http://localhost:5000'); // Assicurati che l'URL sia corretto
+    this.socket = io('https://allmed-backend.onrender.com'); // Assicurati che l'URL sia corretto
     this.loadDoctors();
 
     this.socket.on('patientsUpdated', (data:any) => {
@@ -27,7 +27,7 @@ export class SalaAttesaPage implements OnInit {
   }
 
   loadDoctors() {
-    this.http.get<any[]>('http://localhost:5000/doctors/active-doctors').subscribe(data => {
+    this.http.get<any[]>('https://allmed-backend.onrender.com/doctors/active-doctors').subscribe(data => {
       this.detectNewCalls(data);
       this.doctors = data;
     });

@@ -16,7 +16,7 @@ export class MedicoPage implements OnInit {
   constructor(private http: HttpClient) {}
 
   ngOnInit() {
-    this.socket = io('http://localhost:5000'); // Assicurati che l'URL sia corretto
+    this.socket = io('https://allmed-backend.onrender.com'); // Assicurati che l'URL sia corretto
     this.loadPatients();
 
     this.socket.on('patientsUpdated', () => {
@@ -26,13 +26,13 @@ export class MedicoPage implements OnInit {
 
   loadPatients() {
     if (!this.doctorStudy) return;
-    this.http.get<any[]>(`http://localhost:5000/patients/study/${this.doctorStudy}`).subscribe(data => {
+    this.http.get<any[]>(`https://allmed-backend.onrender.com/patients/study/${this.doctorStudy}`).subscribe(data => {
       this.patients = data;
     });
   }
 
   callPatient(patientId: number) {
-    this.http.put(`http://localhost:5000/patients/${patientId}/call`, {}).subscribe(() => {
+    this.http.put(`https://allmed-backend.onrender.com/patients/${patientId}/call`, {}).subscribe(() => {
       console.log("Paziente chiamato!");
     });
   }
