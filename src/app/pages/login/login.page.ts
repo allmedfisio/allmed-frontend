@@ -16,7 +16,7 @@ export class LoginPage {
   constructor(private http: HttpClient, private router: Router) {}
 
   login() {
-    this.http.post<{ token: string }>('http://localhost:5000/auth/login', { username: this.username, password: this.password })
+    this.http.post<{ token: string }>('https://allmed-backend.onrender.com/auth/login', { username: this.username, password: this.password })
       .subscribe({
         next: (response) => {
           localStorage.setItem('token', response.token);
