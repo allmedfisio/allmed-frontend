@@ -1,0 +1,23 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Aggiungi Paziente</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="dismiss()">Chiudi</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <form (ngSubmit)="addPatient()">
+    <ion-item>
+      <ion-label position="stacked">Nome</ion-label>
+      <ion-input type="text" [(ngModel)]="fullName" name="fullName" required></ion-input>
+    </ion-item>
+    <ion-item>
+      <ion-label position="stacked">Studio</ion-label>
+      <ion-input type="text" [(ngModel)]="assignedStudy" name="assignedStudy" required></ion-input>
+    </ion-item>
+    <ion-button expand="full" type="submit">Aggiungi</ion-button>
+  </form>
+</ion-content>
+

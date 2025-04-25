@@ -2,7 +2,10 @@ import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { io } from 'socket.io-client';
 import { Router } from '@angular/router';
-import { Token } from '@angular/compiler';
+import { ModalController } from '@ionic/angular';
+import { AddPatientModalComponent } from 'src/app/add-patient-modal/add-patient-modal.component';
+import { AddDoctorModalComponent } from 'src/app/add-doctor-modal/add-doctor-modal.component';
+import { EditPatientModalComponent } from 'src/app/edit-patient-modal/edit-patient-modal.component';
 
 @Component({
   selector: 'app-segreteria',
@@ -18,8 +21,10 @@ export class SegreteriaPage implements OnInit {
   doctorName: string = '';
   doctorStudy: number = NaN;
   socket: any;
+  userName: string = 'Nome Utente';
+  userImage: string = 'path-to-image.jpg';
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(private http: HttpClient, private router: Router, private modalController: ModalController) {}
 
   ngOnInit() {
     const token = localStorage.getItem('token');
@@ -38,12 +43,49 @@ export class SegreteriaPage implements OnInit {
     });
   }
 
+  async openAddPatientModal() {
+    const modal = await this.modalController.create({
+      component: AddPatientModalComponent
+    });
+    return await modal.present();
+  }
+
+  async openAddDoctorModal() {
+    const modal = await this.modalController.create({
+      component: AddDoctorModalComponent
+    });
+    return await modal.present();
+  }
+
+  openUserMenu() {
+    // Logica per mostrare un menu a discesa o popup con le opzioni di logout
+  }
+
   logout() {
     localStorage.removeItem('token');
     this.router.navigate(['/login']);
   }
 
+  editDoctor (doctor: any) {
+
+  }
+
+  async openEditPatientModal(patient: any) {
+    const modal = await this.modalController.create({
+      component: EditPatientModalComponent,
+      componentProps: {
+        patientData: patient
+      }
+    });
+    modal.onDidDismiss().then(() => {
+      const tokenP = localStorage.getItem('token');
+      //this.loadPatients(tokenP);
+    });
+    return await modal.present();
+  }
+
   loadPatients(token: any) {
+    console.log("In load patients, token: ", token)
     this.http.get<any[]>('https://allmed-backend.onrender.com/patients/waiting', {
       headers: {
         "Authorization": `Bearer ${token}`

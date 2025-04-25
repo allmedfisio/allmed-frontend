@@ -1,0 +1,25 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Modifica {{ patientData?.full_name }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="dismiss()">Chiudi</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+<ion-content>
+  <form [formGroup]="form" (ngSubmit)="editPatient()">
+    <ion-item>
+      <ion-label position="floating">Nome e Cognome</ion-label>
+      <ion-input formControlName="fullName"></ion-input>
+    </ion-item>
+    <ion-item>
+      <ion-label position="floating">Studio</ion-label>
+      <ion-input formControlName="assignedStudy"></ion-input>
+    </ion-item>
+    <ion-footer class="ion-padding">
+      <ion-button expand="block" type="submit" [disabled]="form.invalid">
+        Modifica
+      </ion-button>
+    </ion-footer>
+  </form>
+</ion-content>

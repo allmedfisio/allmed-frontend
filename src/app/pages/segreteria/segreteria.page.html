@@ -1,3 +1,4 @@
+<!--
 <ion-header [translucent]="true">
   <ion-toolbar color="primary">
     <ion-title>Segreteria</ion-title>
@@ -6,7 +7,74 @@
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
+-->
 
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="openAddPatientModal()">
+        <ion-icon slot="icon-only" name="person-add-outline"></ion-icon>
+      </ion-button>
+      <ion-button (click)="openAddDoctorModal()">
+        <ion-icon slot="icon-only" name="person-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    
+    <ion-title>Dashboard Segreteria</ion-title>
+
+    <ion-buttons slot="end">
+      <ion-button (click)="openUserMenu()">
+        <ion-avatar>
+          <img [src]="userImage" alt="user image"/>
+        </ion-avatar>
+        <ion-label>{{ userName }}</ion-label>
+      </ion-button>
+      <ion-button (click)="logout()">Logout</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-row>
+    <ion-col size="6">
+      <h2>Pazienti</h2>
+      <ion-list>
+        <ion-item *ngFor="let patient of patients">
+          <ion-label>{{ patient.fullName }}
+            <h2>{{ patient.full_name }}</h2>
+            <p>Studio: {{ patient.assigned_study }} - Numero: {{ patient.assigned_number }}</p>
+          </ion-label>
+          <ion-button slot="end" (click)="openEditPatientModal(patient)">
+            <ion-icon name="create-outline"></ion-icon>
+          </ion-button>
+          <ion-button slot="end" color="danger" (click)="removePatient(patient.id)">
+            <ion-icon name="trash-outline"></ion-icon>
+          </ion-button>
+        </ion-item>
+      </ion-list>
+    </ion-col>
+    
+    <ion-col size="6">
+      <h2>Medici</h2>
+      <ion-list>
+        <ion-item *ngFor="let doctor of doctors">
+          <ion-label>
+            <h2>{{ doctor.name }} (Studio {{ doctor.study }})</h2>
+            <p>Ultimo paziente chiamato: <strong>{{ doctor.current_patient || 'Nessuno' }}</strong></p>
+          </ion-label>
+          <ion-button slot="end" (click)="editDoctor(doctor)">
+            <ion-icon name="create-outline"></ion-icon>
+          </ion-button>
+          <ion-button slot="end" color="danger" (click)="removeDoctor(doctor.id)">
+            <ion-icon name="trash-outline"></ion-icon>
+          </ion-button>
+        </ion-item>
+      </ion-list>
+    </ion-col>
+  </ion-row>
+</ion-content>
+
+<!--
 <ion-content [fullscreen]="true">
   <ion-card>
     <ion-card-header>
@@ -75,3 +143,4 @@
     </ion-card-content>
   </ion-card>
 </ion-content>
+-->
