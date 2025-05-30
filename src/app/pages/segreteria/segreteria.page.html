@@ -1,14 +1,3 @@
-<!--
-<ion-header [translucent]="true">
-  <ion-toolbar color="primary">
-    <ion-title>Segreteria</ion-title>
-    <ion-buttons slot="end">
-      <ion-button (click)="logout()">Logout</ion-button>
-    </ion-buttons>
-  </ion-toolbar>
-</ion-header>
--->
-
 <ion-header>
   <ion-toolbar>
     <ion-buttons slot="start">
@@ -19,128 +8,100 @@
         <ion-icon slot="icon-only" name="person-outline"></ion-icon>
       </ion-button>
     </ion-buttons>
-    
+
     <ion-title>Dashboard Segreteria</ion-title>
 
     <ion-buttons slot="end">
-      <ion-button (click)="openUserMenu()">
+      <ion-button id="user-avatar-button">
         <ion-avatar>
-          <img [src]="userImage" alt="user image"/>
+          <img [src]="(userProfile$ | async)?.avatarUrl" alt="user image" />
         </ion-avatar>
-        <ion-label>{{ userName }}</ion-label>
       </ion-button>
-      <ion-button (click)="logout()">Logout</ion-button>
+      <ion-popover trigger="user-avatar-button" dismiss-on-select="true">
+        <ng-template>
+          <ion-list lines="none">
+            <ion-list-header>
+              {{ (userProfile$ | async)?.name }}
+            </ion-list-header>
+            <ion-item button (click)="logout()">
+              <ion-icon name="log-out-outline" slot="start"></ion-icon>
+              Logout
+            </ion-item>
+          </ion-list>
+        </ng-template>
+      </ion-popover>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content>
-  <ion-row>
-    <ion-col size="6">
-      <h2>Pazienti</h2>
-      <ion-list>
-        <ion-item *ngFor="let patient of patients">
-          <ion-label>{{ patient.fullName }}
-            <h2>{{ patient.full_name }}</h2>
-            <p>Studio: {{ patient.assigned_study }} - Numero: {{ patient.assigned_number }}</p>
-          </ion-label>
-          <ion-button slot="end" (click)="openEditPatientModal(patient)">
-            <ion-icon name="create-outline"></ion-icon>
-          </ion-button>
-          <ion-button slot="end" color="danger" (click)="removePatient(patient.id)">
-            <ion-icon name="trash-outline"></ion-icon>
-          </ion-button>
-        </ion-item>
-      </ion-list>
-    </ion-col>
-    
-    <ion-col size="6">
-      <h2>Medici</h2>
-      <ion-list>
-        <ion-item *ngFor="let doctor of doctors">
-          <ion-label>
-            <h2>{{ doctor.name }} (Studio {{ doctor.study }})</h2>
-            <p>Ultimo paziente chiamato: <strong>{{ doctor.current_patient || 'Nessuno' }}</strong></p>
-          </ion-label>
-          <ion-button slot="end" (click)="editDoctor(doctor)">
-            <ion-icon name="create-outline"></ion-icon>
-          </ion-button>
-          <ion-button slot="end" color="danger" (click)="removeDoctor(doctor.id)">
-            <ion-icon name="trash-outline"></ion-icon>
-          </ion-button>
-        </ion-item>
-      </ion-list>
-    </ion-col>
-  </ion-row>
+  <ng-container *ngIf="patientsByStatus$ | async as pdata; else loading">
+    <ion-row>
+      <ion-col size="6">
+        <h2>Pazienti in attesa</h2>
+        <ng-container
+          *ngFor="let group of pdata.waiting; trackBy: trackByStudy"
+        >
+          <h3>Studio {{ group.study }}</h3>
+          <ion-list>
+            <ion-item
+              *ngFor="let patient of group.patients; trackBy: trackByPatientId"
+            >
+              <ion-label>
+                <h2>{{ patient.full_name }}</h2>
+                <p>Numero: {{ patient.assigned_number }}</p>
+                <p>
+                  Orario appuntamento: {{ patient.appointment_time |
+                  date:'HH:mm'}}
+                </p>
+              </ion-label>
+              <ion-button slot="end" (click)="callPatient(patient)">
+                <ion-icon name="hand-left-outline"></ion-icon>
+              </ion-button>
+              <ion-button slot="end" (click)="openEditPatientModal(patient)">
+                <ion-icon name="create-outline"></ion-icon>
+              </ion-button>
+              <ion-button
+                slot="end"
+                color="danger"
+                (click)="removePatient(patient.id)"
+              >
+                <ion-icon name="trash-outline"></ion-icon>
+              </ion-button>
+            </ion-item>
+          </ion-list>
+        </ng-container>
+      </ion-col>
+
+      <ion-col size="6">
+        <h2>Medici attivi</h2>
+        <ng-container *ngIf="doctorsByStudy$ | async as ddata">
+          <ng-container *ngFor="let group of ddata; trackBy: trackByStudy">
+            <h3>Studio {{ group.study }}</h3>
+            <ion-list>
+              <ion-item
+                *ngFor="let doc of group.doctors; trackBy: trackByDoctorId"
+              >
+                <ion-label>
+                  <h2>{{ doc.name }}</h2>
+                  <p>
+                    Paziente in visita:
+                    <strong>{{ doc.last_patient || 'Nessuno' }}</strong>
+                  </p>
+                </ion-label>
+              </ion-item>
+            </ion-list>
+          </ng-container>
+        </ng-container>
+      </ion-col>
+    </ion-row>
+  </ng-container>
+
+  <!-- Spinner di caricamento -->
+  <ng-template #loading>
+    <ion-spinner
+      name="crescent"
+      style="display: block; margin: auto; padding-top: 2rem"
+    ></ion-spinner>
+  </ng-template>
 </ion-content>
-
-<!--
-<ion-content [fullscreen]="true">
-  <ion-card>
-    <ion-card-header>
-      <ion-card-title>Aggiungi Paziente</ion-card-title>
-    </ion-card-header>
-    <ion-card-content>
-      <ion-item>
-        <ion-label position="floating">Nome e Cognome</ion-label>
-        <ion-input [(ngModel)]="fullName"></ion-input>
-      </ion-item>
-      <ion-item>
-        <ion-label position="floating">Studio Assegnato</ion-label>
-        <ion-input type="number" [(ngModel)]="assignedStudy"></ion-input>
-      </ion-item>
-      <ion-button expand="full" (click)="addPatient()">Aggiungi Paziente</ion-button>
-    </ion-card-content>
-  </ion-card>
-  <ion-card>
-    <ion-card-header>
-      <ion-card-title>Aggiungi Medico</ion-card-title>
-    </ion-card-header>
-    <ion-card-content>
-      <ion-item>
-        <ion-label position="floating">Cognome</ion-label>
-        <ion-input [(ngModel)]="doctorName"></ion-input>
-      </ion-item>
-      <ion-item>
-        <ion-label position="floating">Studio Assegnato</ion-label>
-        <ion-input type="number" [(ngModel)]="doctorStudy"></ion-input>
-      </ion-item>
-      <ion-button expand="full" (click)="addDoctor()">Aggiungi Medico</ion-button>
-    </ion-card-content>
-  </ion-card>
-
-  <ion-card>
-    <ion-card-header>
-      <ion-card-title>Pazienti in attesa</ion-card-title>
-    </ion-card-header>
-    <ion-card-content>
-      <ion-list>
-        <ion-item *ngFor="let patient of patients">
-          <ion-label>
-            <h2>{{ patient.full_name }}</h2>
-            <p>Studio: {{ patient.assigned_study }} - Numero: {{ patient.assigned_number }}</p>
-          </ion-label>
-          <ion-button color="danger" (click)="removePatient(patient.id)">Rimuovi</ion-button>
-        </ion-item>
-      </ion-list>
-    </ion-card-content>
-  </ion-card>
-
-  <ion-card>
-    <ion-card-header>
-      <ion-card-title>Medici Attivi</ion-card-title>
-    </ion-card-header>
-    <ion-card-content>
-      <ion-list>
-        <ion-item *ngFor="let doctor of doctors">
-          <ion-label>
-            <h2>{{ doctor.name }} (Studio {{ doctor.study }})</h2>
-            <p>Ultimo paziente chiamato: <strong>{{ doctor.current_patient || 'Nessuno' }}</strong></p>
-          </ion-label>
-          <ion-button color="danger" (click)="removeDoctor(doctor.id)">Rimuovi</ion-button>
-        </ion-item>
-      </ion-list>
-    </ion-card-content>
-  </ion-card>
-</ion-content>
--->

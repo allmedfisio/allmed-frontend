@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-login',
@@ -16,7 +17,7 @@ export class LoginPage {
   constructor(private http: HttpClient, private router: Router) {}
 
   login() {
-    this.http.post<{ token: string }>('https://allmed-backend.onrender.com/auth/login', { username: this.username, password: this.password })
+    this.http.post<{ token: string }>(`${environment.apiUrl}/auth/login`, { username: this.username, password: this.password })
       .subscribe({
         next: (response) => {
           localStorage.setItem('token', response.token);

@@ -3,74 +3,135 @@ import { ModalController, ToastController } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { environment } from 'src/environments/environment';
+import { Patient, PatientService } from '../services/patient.service';
+import { take } from 'rxjs';
 
 @Component({
   selector: 'app-edit-patient-modal',
   templateUrl: './edit-patient-modal.component.html',
   styleUrls: ['./edit-patient-modal.component.scss'],
-  standalone: false
+  standalone: false,
 })
-export class EditPatientModalComponent  implements OnInit {
-  @Input() patientData: any;
-  form!: FormGroup;
+export class EditPatientModalComponent implements OnInit {
+  @Input() patientData!: Patient;
+
+  // campi legati a ngModel
+  fullName!: string;
+  assignedStudy!: number;
+  appointmentTime!: string;
+  orariDisponibili: string[] = [];
+  orarioAppuntamento: string = '';
 
   constructor(
-    private http: HttpClient,
-    private router: Router,
-    private fb: FormBuilder,
-    private modalController: ModalController,
+    private modalCtrl: ModalController,
+    private patientService: PatientService,
     private toastCtrl: ToastController
-  ) { }
+  ) {}
 
   ngOnInit() {
-    this.form = this.fb.group({
-      fullName: [this.patientData?.full_name || '', Validators.required],
-      assignedStudy: [this.patientData?.assigned_study || '', Validators.required]
-    });
-   console.log(this.patientData)
+    // inizializza i form fields con i dati correnti
+    this.fullName = this.patientData.full_name;
+    this.assignedStudy = this.patientData.assigned_study;
+    this.appointmentTime = this.patientData.appointment_time;
+
+    // Genera gli orari disponibili
+    this.generaOrariDisponibili();
   }
 
-  dismiss() {
-    this.modalController.dismiss();
-  }
-
-  editPatient () {
-    if (this.form.invalid) return;
-    const updatedData = {
-      ...this.form.value
-    };
-    console.log("updatedData: " ,updatedData)
-    const tokenP = localStorage.getItem('token');
-    if (!tokenP) {
-      this.router.navigate(['/login']);
+  async save() {
+    const updates: Partial<Patient> = {};
+    if (this.fullName !== this.patientData.full_name) {
+      updates.full_name = this.fullName;
     }
-    this.http.put(`https://allmed-backend.onrender.com/patients/${this.patientData.id}`, {
-    //this.http.put(`http://localhost:5000/patients/${this.patientData.id}`, {
-      full_name: updatedData.fullName,
-      assigned_study: updatedData.assignedStudy
-    }, {
-      headers: {
-        "Authorization": `Bearer ${tokenP}`
-      }
-    }).subscribe({
-      next: () => {
-      this.presentToast('Paziente aggiornato con successo!', 'success');
-      this.dismiss();
-    },
-    error: (err) => {
-      console.error('Errore durante la modifica del paziente:', err);
-      this.presentToast('Errore durante la modifica del paziente', 'danger');
+    if (this.assignedStudy !== this.patientData.assigned_study) {
+      updates.assigned_study = this.assignedStudy;
     }
-    });
-  }
+    if (this.appointmentTime !== this.patientData.appointment_time) {
+      updates.appointment_time = this.appointmentTime;
+    }
 
-    async presentToast(message: string, color: 'success' | 'danger') {
-      const toast = await this.toastCtrl.create({
-        message,
-        duration: 2000,
-        color,
-        position: 'bottom'
+    if (Object.keys(updates).length === 0) {
+      // niente da salvare
+      await this.toastCtrl
+        .create({
+          message: 'Nessuna modifica da salvare',
+          duration: 1500,
+          color: 'warning',
+        })
+        .then((t) => t.present());
+      return;
+    }
+
+    this.patientService
+      .updatePatient(this.patientData.id, updates)
+      .pipe(take(1))
+      .subscribe({
+        next: async () => {
+          await this.toastCtrl
+            .create({
+              message: 'Paziente aggiornato!',
+              duration: 1500,
+              color: 'success',
+            })
+            .then((t) => t.present());
+          this.modalCtrl.dismiss();
+        },
+        error: async () => {
+          await this.toastCtrl
+            .create({
+              message: "Errore durante l'aggiornamento",
+              duration: 1500,
+              color: 'danger',
+            })
+            .then((t) => t.present());
+        },
       });
-      await toast.present();
+  }
+
+  generaOrariDisponibili() {
+    const inizio = 14; // ore 8
+    const fine = 19.15; // ore 20
+    const intervalloMinuti = 15;
+
+    for (let ora = inizio; ora <= fine; ora++) {
+      for (let minuti = 0; minuti < 60; minuti += intervalloMinuti) {
+        const orario = `${this.pad(ora)}:${this.pad(minuti)}`;
+        this.orariDisponibili.push(orario);
+      }
     }
   }
+
+  aggiornaDataCompleta() {
+    console.log('orario app: ', this.orarioAppuntamento);
+    const oggi = new Date();
+    const [ore, minuti] = this.orarioAppuntamento.split(':').map(Number);
+
+    const data = new Date(
+      oggi.getFullYear(),
+      oggi.getMonth(),
+      oggi.getDate(),
+      ore,
+      minuti,
+      0
+    );
+
+    // formato ISO "locale" (senza spostamento UTC)
+    const yyyy = data.getFullYear();
+    const mm = String(data.getMonth() + 1).padStart(2, '0');
+    const dd = String(data.getDate()).padStart(2, '0');
+    const hh = String(data.getHours()).padStart(2, '0');
+    const min = String(data.getMinutes()).padStart(2, '0');
+
+    this.appointmentTime = `${yyyy}-${mm}-${dd}T${hh}:${min}:00`;
+    console.log('app time: ', this.appointmentTime);
+  }
+
+  pad(numero: number): string {
+    return numero < 10 ? '0' + numero : numero.toString();
+  }
+
+  cancel() {
+    this.modalCtrl.dismiss();
+  }
+}

@@ -19,11 +19,13 @@ const routes: Routes = [
   },
   {
     path: 'medico',
-    loadChildren: () => import('./pages/medico/medico.module').then( m => m.MedicoPageModule)
+    loadChildren: () => import('./pages/medico/medico.module').then( m => m.MedicoPageModule),
+    canActivate: [AuthGuardService]
   },
   {
     path: 'sala-attesa',
-    loadChildren: () => import('./pages/sala-attesa/sala-attesa.module').then( m => m.SalaAttesaPageModule)
+    loadChildren: () => import('./pages/sala-attesa/sala-attesa.module').then( m => m.SalaAttesaPageModule),
+    canActivate: [AuthGuardService]
   },
   {
     path: 'login',

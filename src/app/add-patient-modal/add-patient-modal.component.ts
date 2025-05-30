@@ -1,47 +1,85 @@
 import { Component, OnInit } from '@angular/core';
 import { ModalController } from '@ionic/angular';
-import { Router } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
+import { PatientService } from '../services/patient.service';
 
 @Component({
   selector: 'app-add-patient-modal',
   templateUrl: './add-patient-modal.component.html',
   styleUrls: ['./add-patient-modal.component.scss'],
-  standalone: false
+  standalone: false,
 })
-export class AddPatientModalComponent  implements OnInit {
+export class AddPatientModalComponent implements OnInit {
   fullName: string = '';
   assignedStudy: number | null = null;
+  appointmentTime: string = '';
+  orariDisponibili: string[] = [];
+  orarioAppuntamento: string = '';
 
-  constructor(private http: HttpClient, private router: Router, private modalController: ModalController) { }
+  constructor(
+    private patientService: PatientService,
+    private modalController: ModalController
+  ) {}
 
-  ngOnInit() {}
+  ngOnInit() {
+    this.generaOrariDisponibili();
+  }
 
   dismiss() {
     this.modalController.dismiss();
   }
 
   addPatient() {
-    if (!this.fullName || !this.assignedStudy) return;
-    const tokenP = localStorage.getItem('token');
-    if (!tokenP) {
-      this.router.navigate(['/login']);
-    }
-
-    this.http.post('https://allmed-backend.onrender.com/patients', {
-      full_name: this.fullName,
-      assigned_study: this.assignedStudy
-    }, {
-      headers: {
-        "Authorization": `Bearer ${tokenP}`
-      }
-    }).subscribe(() => {
-      this.fullName = '';
-      this.assignedStudy = null;
-    });
-    // Aggiungi il paziente nel backend o nel sistema
-    console.log('Paziente Aggiunto:', this.fullName, " nello studio: ", this.assignedStudy);
+    if (!this.fullName || !this.assignedStudy || !this.appointmentTime) return;
+    this.patientService
+      .addPatient(this.fullName, this.assignedStudy!, this.appointmentTime)
+      .pipe()
+      .subscribe((newPatient) => {
+        this.fullName = '';
+        this.assignedStudy = null;
+        this.appointmentTime = '';
+      });
     this.dismiss();
   }
 
+  generaOrariDisponibili() {
+    const inizio = 14; // ore 8
+    const fine = 19.15; // ore 20
+    const intervalloMinuti = 15;
+
+    for (let ora = inizio; ora <= fine; ora++) {
+      for (let minuti = 0; minuti < 60; minuti += intervalloMinuti) {
+        const orario = `${this.pad(ora)}:${this.pad(minuti)}`;
+        this.orariDisponibili.push(orario);
+      }
+    }
+  }
+
+  aggiornaDataCompleta() {
+    console.log('orario app: ', this.orarioAppuntamento);
+    const oggi = new Date();
+    const [ore, minuti] = this.orarioAppuntamento.split(':').map(Number);
+
+    const data = new Date(
+      oggi.getFullYear(),
+      oggi.getMonth(),
+      oggi.getDate(),
+      ore,
+      minuti,
+      0
+    );
+
+    // formato ISO "locale" (senza spostamento UTC)
+    const yyyy = data.getFullYear();
+    const mm = String(data.getMonth() + 1).padStart(2, '0');
+    const dd = String(data.getDate()).padStart(2, '0');
+    const hh = String(data.getHours()).padStart(2, '0');
+    const min = String(data.getMinutes()).padStart(2, '0');
+
+    this.appointmentTime = `${yyyy}-${mm}-${dd}T${hh}:${min}:00`;
+    console.log('app time: ', this.appointmentTime);
+  }
+
+  pad(numero: number): string {
+    return numero < 10 ? '0' + numero : numero.toString();
+  }
 }

@@ -1,6 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { Patient, PatientService } from '../../services/patient.service';
+import { Subscription, take } from 'rxjs';
+import { environment } from 'src/environments/environment';
 import { HttpClient } from '@angular/common/http';
-import { io } from 'socket.io-client';
 
 @Component({
   selector: 'app-medico',
@@ -8,32 +11,49 @@ import { io } from 'socket.io-client';
   styleUrls: ['./medico.page.scss'],
   standalone: false,
 })
-export class MedicoPage implements OnInit {
-  patients: any[] = [];
-  doctorStudy: number | null = null; // Studio del medico
-  socket: any;
+export class MedicoPage implements OnInit, OnDestroy {
+  patients: Patient[] = [];
+  myStudyId!: number;
+  private sub?: Subscription;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private route: ActivatedRoute,
+    private patientService: PatientService,
+    private http: HttpClient
+  ) {}
 
   ngOnInit() {
-    this.socket = io('https://allmed-backend.onrender.com'); // Assicurati che l'URL sia corretto
-    this.loadPatients();
+    //Recupera lo studio dalla route: /medico/:id
+    this.myStudyId = Number(this.route.snapshot.paramMap.get('id'));
 
-    this.socket.on('patientsUpdated', () => {
-      this.loadPatients();
+    // Unisciti alla stanza dello studio:
+    this.patientService.socket.emit('joinStudio', String(this.myStudyId));
+
+    // subscribe allo stream push e filtra per lo studio
+    this.sub = this.patientService.patients$.subscribe((list) => {
+      // aggiorna solo il tuo currentPatient
+      this.patients = list.filter((p) => p.assigned_study === this.myStudyId);
     });
   }
 
-  loadPatients() {
-    if (!this.doctorStudy) return;
-    this.http.get<any[]>(`https://allmed-backend.onrender.com/patients/study/${this.doctorStudy}`).subscribe(data => {
-      this.patients = data;
-    });
+  ngOnDestroy() {
+    this.sub?.unsubscribe();
   }
 
-  callPatient(patientId: number) {
-    this.http.put(`https://allmed-backend.onrender.com/patients/${patientId}/call`, {}).subscribe(() => {
-      console.log("Paziente chiamato!");
-    });
+  callPatient(patientId: string) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return;
+    }
+    this.http
+      .put(
+        `${environment.apiUrl}/patients/${patientId}/call`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      .pipe(take(1))
+      .subscribe(() => {
+        // il socket notifica il service, e la UI si aggiorna da sola
+      });
   }
 }

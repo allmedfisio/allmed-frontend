@@ -7,7 +7,7 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content>
+<div>
   <form (ngSubmit)="addPatient()">
     <ion-item>
       <ion-label position="stacked">Nome</ion-label>
@@ -17,7 +17,15 @@
       <ion-label position="stacked">Studio</ion-label>
       <ion-input type="text" [(ngModel)]="assignedStudy" name="assignedStudy" required></ion-input>
     </ion-item>
+    <ion-item>
+      <ion-label position="stacked">Orario Appuntamento</ion-label>
+      <ion-select name="orarioAppuntamento" [(ngModel)]="orarioAppuntamento"(ionChange)="aggiornaDataCompleta()" interface="popover">
+        <ion-select-option *ngFor="let orario of orariDisponibili" [value]="orario">
+          {{ orario }}
+        </ion-select-option>
+      </ion-select>
+    </ion-item>
     <ion-button expand="full" type="submit">Aggiungi</ion-button>
   </form>
-</ion-content>
+</div>
 

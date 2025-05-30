@@ -1,25 +1,63 @@
 <ion-header>
   <ion-toolbar>
-    <ion-title>Modifica {{ patientData?.full_name }}</ion-title>
+    <ion-title>Modifica: {{ patientData.full_name }}</ion-title>
     <ion-buttons slot="end">
-      <ion-button (click)="dismiss()">Chiudi</ion-button>
+      <ion-button (click)="cancel()">
+        <ion-icon name="close-outline"></ion-icon>
+      </ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
-<ion-content>
+
+<div>
+  <ion-list lines="full">
+    <ion-item>
+      <ion-label position="stacked">Nome</ion-label>
+      <ion-input [(ngModel)]="fullName"></ion-input>
+    </ion-item>
+    <ion-item>
+      <ion-label position="stacked">Studio</ion-label>
+      <ion-input type="number" [(ngModel)]="assignedStudy"></ion-input>
+    </ion-item>
+    <ion-item>
+      <ion-label position="stacked">Orario Appuntamento</ion-label>
+      <ion-select
+        name="orarioAppuntamento"
+        [(ngModel)]="orarioAppuntamento"
+        (ionChange)="aggiornaDataCompleta()"
+        interface="popover"
+      >
+        <ion-select-option
+          *ngFor="let orario of orariDisponibili"
+          [value]="orario"
+        >
+          {{ orario }}
+        </ion-select-option>
+      </ion-select>
+    </ion-item>
+  </ion-list>
+  <ion-button expand="full" (click)="save()">Salva</ion-button>
+  <ion-button expand="full" color="medium" (click)="cancel()"
+    >Annulla</ion-button
+  >
+</div>
+
+<!--
+<div>
   <form [formGroup]="form" (ngSubmit)="editPatient()">
     <ion-item>
-      <ion-label position="floating">Nome e Cognome</ion-label>
+      <ion-label class="modal-label" position="floating">Nome e Cognome</ion-label>
       <ion-input formControlName="fullName"></ion-input>
     </ion-item>
     <ion-item>
-      <ion-label position="floating">Studio</ion-label>
+      <ion-label class="modal-label" position="floating">Studio</ion-label>
       <ion-input formControlName="assignedStudy"></ion-input>
     </ion-item>
-    <ion-footer class="ion-padding">
-      <ion-button expand="block" type="submit" [disabled]="form.invalid">
+    <ion-footer class="ion-padding" style="box-shadow: none;">
+      <ion-button class="edit-button" expand="block" type="submit" [disabled]="form.invalid">
         Modifica
       </ion-button>
     </ion-footer>
   </form>
-</ion-content>
+</div>
+-->

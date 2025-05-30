@@ -35,3 +35,131 @@
 /* @import "@ionic/angular/css/palettes/dark.always.css"; */
 /* @import "@ionic/angular/css/palettes/dark.class.css"; */
 @import "@ionic/angular/css/palettes/dark.system.css";
+
+.custom-modal::part(content) {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    
+    width: auto;
+    max-width: 90vw;
+    height: auto;
+    max-height: 90vh;
+  
+    padding: 0;
+    margin: 0;
+  
+    border-radius: 20px;
+    background: rgba(32, 43, 84, 0.15);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+
+    box-shadow: 0 0 10px rgba(32, 43, 84, 0.25), 0 4px 30px rgba(0, 0, 0, 0.1);
+  
+    animation: fadeInScale 0.3s ease forwards;
+  
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .custom-modal ion-item {
+    --background: rgba(32, 43, 84, 0.15);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-radius: 12px;
+    margin: 8px 8px 8px 8px;
+    --inner-border-width: 0px;
+    //border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 6px rgba(32, 43, 84, 0.1);
+    --padding-start: 16px;
+    --padding-end: 16px;
+    transition: all 0.3s ease; /* Animazione fluida */
+  }
+
+  .custom-modal ion-item:hover {
+    background: rgba(32, 43, 84, 0.25); /* Sfondo leggermente più chiaro */
+    box-shadow: 0 0 12px rgba(32, 43, 84, 0.4); /* Glow bianco morbido */
+    transform: scale(1.02);
+  }
+
+  .custom-modal ion-header, ion-toolbar {
+    --background: rgba(32, 43, 84, 0.15);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-radius: 20px 20px 0 0; /* Solo angoli superiori arrotondati */
+    box-shadow: none; /* Rimuove l'ombra brutta dell'header */
+    text-align: center;
+    transition: all 0.3s ease;
+  }
+  
+
+  .custom-modal ion-title {
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 400;
+    color: white; /* oppure un colore a tema vetro */
+  }
+
+  .custom-modal ion-footer {
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+
+  .custom-modal ion-icon {
+    color: white; /* oppure un colore a tema vetro */
+  }
+
+  .edit-button {
+    --background: rgba(32, 43, 84, 0.15);
+    --box-shadow: none;
+    --border-width: 0;
+    --border-color: transparent;
+    --color: #fff; /* Colore testo */
+    border-radius: 12px;
+    margin-top: 16px;
+    width: 100%;
+    transition: all 0.3s ease;
+    text-transform: none; /* Se vuoi evitare il tutto maiuscolo */
+  }
+  
+  /* Hover glow effetto vetro anche sui bottoni */
+  .edit-button:hover {
+    background: rgba(32, 43, 84, 0.25);
+    box-shadow: 0 0 12px rgba(32, 43, 84, 0.4);
+  }
+  
+  /* Rimuove l'outline blu quando clicchi */
+  .edit-button:focus {
+    outline: none;
+    box-shadow: none;
+  }
+
+  .modal-label {
+    width: 100%;
+    font-weight: 700;
+  }
+  
+  .custom-modal::part(backdrop) {
+    background: rgba(0, 0, 0, 0.4);
+  }
+  
+  @keyframes fadeInScale {
+    0% {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.9);
+    }
+    100% {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+  
+  ion-input {
+    --highlight-color-focused: transparent;
+    --highlight-color: transparent;
+    --border-color: transparent;
+    --background: transparent;
+  }
+  
+  
