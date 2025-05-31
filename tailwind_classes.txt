@@ -1,0 +1,109 @@
+Overall page:
+- `relative`
+- `flex`
+- `size-full`
+- `min-h-screen`
+- `flex-col`
+- `bg-gray-50`
+- `group/design-root`
+- `overflow-x-hidden`
+- `font-family: Manrope, "Noto Sans", sans-serif;` (Inline style)
+
+Header Container:
+- `flex`
+- `items-center`
+- `justify-between`
+- `whitespace-nowrap`
+- `border-b`
+- `border-solid`
+- `border-b-[#e9eef1]`
+- `px-10`
+- `py-3`
+
+Header Text ("Queue Manager"):
+- `text-[#101619]`
+- `text-lg`
+- `font-bold`
+- `leading-tight`
+- `tracking-[-0.015em]`
+
+Main Content Container (Card-like element):
+- `layout-content-container` (Custom class)
+- `flex`
+- `flex-col`
+- `w-[512px]`
+- `max-w-[512px]`
+- `py-5`
+- `flex-1`
+
+"Welcome back" Title:
+- `text-[#101619]`
+- `tracking-light`
+- `text-[28px]`
+- `font-bold`
+- `leading-tight`
+- `px-4`
+- `text-center`
+- `pb-3`
+- `pt-5`
+
+Username/Password Label Text (e.g., "Username", "Password"):
+- `text-[#101619]`
+- `text-base`
+- `font-medium`
+- `leading-normal`
+- `pb-2`
+
+Username/Password Input Fields:
+- `form-input` (Tailwind Forms plugin)
+- `flex`
+- `w-full`
+- `min-w-0`
+- `flex-1`
+- `resize-none`
+- `overflow-hidden`
+- `rounded-xl`
+- `text-[#101619]`
+- `focus:outline-0`
+- `focus:ring-0`
+- `border-none`
+- `bg-[#e9eef1]`
+- `focus:border-none`
+- `h-14`
+- `placeholder:text-[#577a8e]`
+- `p-4`
+- `text-base`
+- `font-normal`
+- `leading-normal`
+
+"Forgot password?" Link:
+- `text-[#577a8e]`
+- `text-sm`
+- `font-normal`
+- `leading-normal`
+- `pb-3`
+- `pt-1`
+- `px-4`
+- `underline`
+
+Login Button:
+- `flex`
+- `min-w-[84px]`
+- `max-w-[480px]`
+- `cursor-pointer`
+- `items-center`
+- `justify-center`
+- `overflow-hidden`
+- `rounded-full`
+- `h-10`
+- `px-4`
+- `flex-1`
+- `bg-[#3294cc]`
+- `text-gray-50`
+- `text-sm`
+- `font-bold`
+- `leading-normal`
+- `tracking-[0.015em]`
+
+Login Button Text Span ("Log In"):
+- `truncate`

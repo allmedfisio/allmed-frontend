@@ -1,0 +1,107 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Noto+Sans:wght@400;500;700;900&display=swap');
+
+// Global font style for the page
+ion-content {
+  font-family: 'Manrope', 'Noto Sans', sans-serif;
+  // --background: #f9fafb; // bg-gray-50 - Tailwind class `bg-gray-50` on ion-content should handle this. Add if not effective.
+}
+
+// ion-card specific adjustments if needed
+ion-card {
+  // The Tailwind class `max-w-md` is on ion-card.
+  // The TODO for py-5 (vertical padding) on the card:
+  // Ionic cards have their own padding. The `ion-card-content` also has `px-4 py-3`.
+  // If more specific overall card padding is needed, it can be adjusted here, e.g.:
+  // --ion-card-padding: 1.25rem; // roughly py-5
+  // For now, assuming Tailwind classes and ion-card-content padding are managing this.
+}
+
+// Styling for ion-item and ion-input to match design
+ion-item {
+  --background: transparent; // Assuming items are on the card's background or content background
+  --padding-start: 0; // Remove default Ionic padding to let Tailwind/custom padding on input take over
+  --inner-padding-end: 0;
+  --border-color: transparent; // Emulate border-none from design
+  --highlight-color-focused: transparent; // Remove highlight on focus if not desired
+  --min-height: auto; // Allow item height to be determined by content (input)
+  overflow: visible; // Allow rounded inputs to show correctly if they exceed item bounds slightly
+
+  // Remove the default line/border at the bottom of ion-item
+  &::part(native) {
+    border-bottom: none !important;
+    padding-left: 0; // Reset padding if --padding-start is not enough
+  }
+}
+
+ion-input {
+  // Using Tailwind classes directly on ion-input in HTML for most properties.
+  // SCSS is for properties that are harder to set with Tailwind on Ionic components or need !important.
+  // background-color: #e9eef1; // bg-[#e9eef1] - Covered by Tailwind `bg-[#e9eef1]`
+  // border-radius: 0.75rem; // rounded-xl - Covered by Tailwind `rounded-xl`
+  // height: 3.5rem; // h-14 - Covered by Tailwind `h-14`
+  // padding: 1rem; // p-4 - Covered by Tailwind `p-4`
+  // color: #101619; - Covered by Tailwind `text-[#101619]`
+
+  // Ensure placeholder color from design is applied if Tailwind class is not sufficient
+  &::placeholder,
+  .native-input::placeholder {
+    color: #577a8e !important; // placeholder:text-[#577a8e]
+    opacity: 1; /* Firefox */
+  }
+
+  // Ensure focus styles from design (no outline, no ring)
+  // Tailwind `focus:outline-0 focus:ring-0` should handle this.
+  // Add SCSS only if they are overridden by Ionic defaults.
+  .native-input:focus {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  // Ensure the input itself gets the background if the Tailwind class on ion-input doesn't penetrate
+  // This might be needed if ion-input has an inner native element that needs styling.
+  // For now, assuming Tailwind `bg-[#e9eef1]` on `ion-input` is effective.
+  // If not, uncomment and adjust:
+  // &::part(native) {
+  //   background-color: #e9eef1;
+  //   padding: 1rem; // Ensure padding is on the native part
+  // }
+}
+
+// Ensure ion-label floating position styles are applied
+ion-label[position="floating"] {
+  // Tailwind classes `text-[#101619] text-base font-medium leading-normal pb-2` are on the label.
+  // Add !important here if Ionic's default styles for floating labels override Tailwind.
+  color: #101619 !important;
+  font-weight: 500 !important; // font-medium from design (Tailwind text-base is font-size, font-medium is weight)
+  // transform: translateY(-10px) scale(0.8); // Example of further customization if needed
+}
+
+// Styling for the login button
+ion-button.login-button {
+  // Most styles are applied via Tailwind classes directly on the button in HTML.
+  // Use CSS variables here for properties that benefit from Ionic's theming capabilities
+  // or if Tailwind classes don't apply correctly.
+  // --border-radius: 9999px; // rounded-full - Covered by Tailwind `rounded-full`
+  // height: 2.5rem; // h-10 - Covered by Tailwind `h-10`
+  // --background: #3294cc; // Covered by Tailwind `bg-[#3294cc]`
+  // --color: #f9fafb; // text-gray-50 - Covered by Tailwind `text-gray-50`
+
+  // Ensure font properties from design. Tailwind classes `text-sm font-bold leading-normal tracking-[0.015em]` are applied.
+  // Add !important if needed.
+  font-size: 0.875rem !important; // text-sm
+  font-weight: 700 !important; // font-bold
+  letter-spacing: 0.015em !important; // tracking-[0.015em]
+  text-transform: none !important; // normal-case (already class in HTML, but enforce here if needed)
+
+  // For expand="full" and max-width considerations:
+  // The button has `expand="full"`. The card has `max-w-md`.
+  // If the button needs its own max-width different from the card,
+  // it might be better to wrap ion-button in a div with that max-width and center it.
+  // The Tailwind class `max-w-[480px]` was in the original design spec for the button.
+  // If ion-button itself should have this max-width while being centered by expand="full":
+  // This usually means the container of ion-button should control its size.
+  // For now, relying on Tailwind classes on the button and its container (ion-card-content).
+  // max-width: 480px; // If applied directly, it might break expand="full" behavior
+  // margin-left: auto;
+  // margin-right: auto;
+}

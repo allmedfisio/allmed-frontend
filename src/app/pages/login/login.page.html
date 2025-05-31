@@ -1,25 +1,48 @@
+<!-- TODO: Apply font-family: Manrope, "Noto Sans", sans-serif; globally via SCSS -->
 <ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>login</ion-title>
+  <ion-toolbar class="border-b border-solid border-b-[#e9eef1] px-4 py-3">
+    <!-- TODO: The design has justify-between for header items, which might need more structure if other icons/buttons are added to toolbar -->
+    <ion-title class="text-[#101619] text-lg font-bold leading-tight tracking-[-0.015em]">login</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-    <ion-card>
-      <ion-card-header>
-        <ion-card-title>Accedi</ion-card-title>
+<ion-content [fullscreen]="true" class="bg-gray-50 flex flex-col items-center justify-center p-4">
+    <!-- Notes:
+      - Original design had `px-40` for desktop, using `p-4` for general responsiveness.
+      - `min-h-screen` is implicitly handled by ion-content with fullscreen.
+      - `justify-center` for the content within this flex container.
+    -->
+    <ion-card class="flex flex-col w-full max-w-md bg-white rounded-xl">
+      <!-- TODO: Original design had py-5 on the card container. Ionic cards have their own padding. Adjust if needed via SCSS. -->
+      <ion-card-header class="text-center">
+        <ion-card-title class="text-[#101619] tracking-light text-[28px] font-bold leading-tight px-4 pb-3 pt-5">Accedi</ion-card-title>
+        <!-- TODO: Verify text-center application on ion-card-header vs ion-card-title -->
       </ion-card-header>
-      <ion-card-content>
-        <ion-item>
-          <ion-label position="floating">Username</ion-label>
-          <ion-input [(ngModel)]="username"></ion-input>
+      <ion-card-content class="px-4 py-3"> <!-- Added px-4 py-3 to mimic design's gap-4 px-4 py-3 on item containers -->
+        <ion-item class="mb-4"> <!-- Added mb-4 for spacing, similar to gap-4 in design -->
+          <!-- TODO: Style ion-item for flex behavior if needed, or rely on individual component styling -->
+          <ion-label position="floating" class="text-[#101619] text-base font-medium leading-normal pb-2">Username</ion-label>
+          <!-- TODO: Ionic input styling for bg, border, padding, height might need SCSS variables -->
+          <ion-input [(ngModel)]="username" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#101619] focus:outline-0 focus:ring-0 border-none bg-[#e9eef1] focus:border-none h-14 placeholder:text-[#577a8e] p-4 text-base font-normal leading-normal mt-2"></ion-input>
         </ion-item>
-        <ion-item>
-          <ion-label position="floating">Password</ion-label>
-          <ion-input [(ngModel)]="password" type="password"></ion-input>
+        <ion-item class="mb-4"> <!-- Added mb-4 for spacing -->
+          <ion-label position="floating" class="text-[#101619] text-base font-medium leading-normal pb-2">Password</ion-label>
+          <!-- TODO: Ionic input styling for bg, border, padding, height might need SCSS variables -->
+          <ion-input [(ngModel)]="password" type="password" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#101619] focus:outline-0 focus:ring-0 border-none bg-[#e9eef1] focus:border-none h-14 placeholder:text-[#577a8e] p-4 text-base font-normal leading-normal mt-2"></ion-input>
         </ion-item>
-        <ion-button expand="full" (click)="login()">Login</ion-button>
-        <ion-text color="danger" *ngIf="errorMessage">{{ errorMessage }}</ion-text>
+
+        <p class="text-[#577a8e] text-sm font-normal leading-normal pb-3 pt-1 px-4 underline text-center cursor-pointer">Forgot password?</p>
+        <!-- TODO: Make "Forgot password?" a button or anchor if interactive functionality is added later -->
+
+        <!-- TODO: The button needs to be full width but also respect max-w-md of the card.
+             expand="full" on ion-button might conflict with max-w classes.
+             Consider wrapping ion-button in a div with flex and justify-center if issues arise.
+             The original design specified max-w-[480px] for the button itself.
+        -->
+        <ion-button expand="full" (click)="login()" class="login-button flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-4 bg-[#3294cc] text-gray-50 text-sm font-bold leading-normal tracking-[0.015em] mt-4 normal-case">Login</ion-button>
+        <!-- Added normal-case to prevent Ionic's default uppercase -->
+        <!-- Added login-button class for SCSS targeting -->
+        <ion-text color="danger" *ngIf="errorMessage" class="mt-2 text-center block">{{ errorMessage }}</ion-text> <!-- Added mt-2, text-center, block -->
       </ion-card-content>
     </ion-card>
 </ion-content>
