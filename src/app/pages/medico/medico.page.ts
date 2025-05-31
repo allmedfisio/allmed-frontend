@@ -1,9 +1,9 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { AlertController } from '@ionic/angular';
 import { Patient, PatientService } from '../../services/patient.service';
-import { Subscription, take } from 'rxjs';
-import { environment } from 'src/environments/environment';
-import { HttpClient } from '@angular/common/http';
+import { firstValueFrom, Subscription, take } from 'rxjs';
+import { DoctorService } from 'src/app/services/doctor.service';
 
 @Component({
   selector: 'app-medico',
@@ -12,48 +12,138 @@ import { HttpClient } from '@angular/common/http';
   standalone: false,
 })
 export class MedicoPage implements OnInit, OnDestroy {
-  patients: Patient[] = [];
+  /** Paziente attualmente in visita */
+  currentPatient: Patient | null = null;
+  /** Prossimo paziente in attesa */
+  nextPatient: Patient | null = null;
   myStudyId!: number;
   private sub?: Subscription;
 
   constructor(
     private route: ActivatedRoute,
     private patientService: PatientService,
-    private http: HttpClient
+    private doctorService: DoctorService,
+    private alertCtrl: AlertController
   ) {}
 
   ngOnInit() {
     //Recupera lo studio dalla route: /medico/:id
     this.myStudyId = Number(this.route.snapshot.paramMap.get('id'));
 
-    // Unisciti alla stanza dello studio:
-    this.patientService.socket.emit('joinStudio', String(this.myStudyId));
-
-    // subscribe allo stream push e filtra per lo studio
-    this.sub = this.patientService.patients$.subscribe((list) => {
-      // aggiorna solo il tuo currentPatient
-      this.patients = list.filter((p) => p.assigned_study === this.myStudyId);
-    });
+    const stored = localStorage.getItem('myStudyId');
+    if (stored) {
+      // già impostato: avvia direttamente
+      this.initForStudy(+stored);
+    } else {
+      // primo avvio: chiedi allo user di selezionare
+      this.selectStudy();
+    }
   }
 
   ngOnDestroy() {
     this.sub?.unsubscribe();
   }
 
-  callPatient(patientId: string) {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      return;
-    }
-    this.http
-      .put(
-        `${environment.apiUrl}/patients/${patientId}/call`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-      .pipe(take(1))
-      .subscribe(() => {
-        // il socket notifica il service, e la UI si aggiorna da sola
-      });
+  private initForStudy(study: number) {
+    this.myStudyId = study;
+
+    // Join alla stanza corretta
+    this.patientService.socket.emit('joinStudio', String(this.myStudyId));
+
+    // Sottoscrizione per filtrare current/next per questo studio
+    this.sub = this.patientService.patients$.subscribe((list) => {
+      const studyList = list.filter((p) => p.assigned_study === this.myStudyId);
+      this.currentPatient =
+        studyList.find((p) => p.status === 'in_visita') || null;
+      const waiting = studyList
+        .filter((p) => p.status === 'in_attesa')
+        .sort((a, b) =>
+          (a.appointment_time ?? '').localeCompare(b.appointment_time ?? '')
+        );
+      this.nextPatient = waiting.length ? waiting[0] : null;
+    });
   }
+
+  async selectStudy() {
+    const inputs = Array.from({ length: 6 }, (_, i) => ({
+      name: `${i + 1}`,
+      type: 'radio' as const,
+      label: `Studio ${i + 1}`,
+      value: `${i + 1}`,
+    }));
+
+    const alert = await this.alertCtrl.create({
+      header: 'Seleziona lo studio',
+      inputs,
+      buttons: [
+        { text: 'Annulla', role: 'cancel' },
+        {
+          text: 'OK',
+          handler: (val: string) => {
+            localStorage.setItem('myStudyId', val);
+            this.initForStudy(+val);
+          },
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  // ✅ versione a prova di race-condition
+  async callNext() {
+    if (!this.nextPatient) return;
+
+    // 1️⃣ Congela il paziente da chiamare prima di qualunque side-effect
+    const patientToCall = this.nextPatient;
+
+    try {
+      // 2️⃣ Cambia lo stato del paziente (attesa ➜ in_visita)
+      await firstValueFrom(this.patientService.callPatient(patientToCall.id));
+
+      // 3️⃣ Recupera il record del medico relativo a questo studio
+      const doctors = await firstValueFrom(this.doctorService.doctors$);
+      const myDoctor = doctors.find((d) => d.study === this.myStudyId);
+      if (myDoctor) {
+        // 4️⃣ Aggiorna last_patient con il nome “congelato”
+        await firstValueFrom(
+          this.doctorService.updateLastPatient(
+            myDoctor.id,
+            patientToCall.full_name
+          )
+        );
+      }
+      /* 5️⃣ Il subscribe alla lista pazienti continuerà ad aggiornare
+          currentPatient e nextPatient senza ulteriori race-condition */
+    } catch (err) {
+      console.error('Errore in callNext:', err);
+    }
+  }
+
+  /** Chiama il prossimo paziente in attesa
+  callNext() {
+    if (!this.nextPatient) return;
+
+    // Chiama il paziente
+    this.patientService
+      .callPatient(this.nextPatient.id)
+      .pipe(take(1))
+      .subscribe({
+        next: async () => {
+          // Aggiorno il doctor cercandolo per studio
+          const doctors = await firstValueFrom(this.doctorService.doctors$);
+          const doc = doctors.find((d) => d.study === this.myStudyId);
+          if (doc) {
+            // 3️⃣ Aggiorna last_patient
+            await firstValueFrom(
+              this.doctorService.updateLastPatient(
+                doc.id,
+                this.currentPatient!.full_name
+              )
+            );
+          }
+          // verrà aggiornato via socket e il subscribe sopra ricalcolerà current/next
+        },
+        error: (err) => console.error('Errore in callPatient:', err),
+      });
+  } */
 }

@@ -6,7 +6,7 @@ import { AddDoctorModalComponent } from 'src/app/add-doctor-modal/add-doctor-mod
 import { EditPatientModalComponent } from 'src/app/edit-patient-modal/edit-patient-modal.component';
 import { Patient, PatientService } from 'src/app/services/patient.service';
 import { Observable, take, firstValueFrom } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, tap } from 'rxjs/operators';
 import { Doctor, DoctorService } from 'src/app/services/doctor.service';
 import { AuthService, UserProfile } from 'src/app/services/auth.service';
 
@@ -65,6 +65,7 @@ export class SegreteriaPage implements OnInit {
 
     // Carica i medici attivi solo una volta
     this.doctorsByStudy$ = this.doctorService.doctors$.pipe(
+      tap((list) => console.log('SegreteriaPage: nuovi medici ricevuti', list)),
       map((list) => this.groupByStudy(list))
     );
   }
@@ -135,18 +136,10 @@ export class SegreteriaPage implements OnInit {
     const byStatus = (status: Patient['status']) => {
       // Filtro per status
       let slice = list.filter((p) => p.status === status);
-      console.log(
-        `Before sort [${status}]:`,
-        slice.map((p) => p.appointment_time)
-      );
 
       // Ordino per appointment_time crescente
       slice = slice.sort((a, b) =>
         a.appointment_time.localeCompare(b.appointment_time)
-      );
-      console.log(
-        ` After sort [${status}]:`,
-        slice.map((p) => p.appointment_time)
       );
 
       // Raggruppo per studio

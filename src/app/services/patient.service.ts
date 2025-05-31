@@ -118,4 +118,16 @@ Rimuove un paziente
       `${environment.apiUrl}/patients/${patientId}`
     );
   }
+
+  //Ritorna un Observable di { current, next } per uno studio
+
+  getByStudy$(studyId: number) {
+    const token = localStorage.getItem('token')!;
+    return this.http.get<{ current: Patient | null; next: Patient | null }>(
+      `${environment.apiUrl}/patients/study/${studyId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+  }
 }

@@ -1,20 +1,44 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-title>Medico</ion-title>
+    <ion-title>Studio {{ myStudyId }}</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">  
-    <ion-list>
-      <ion-item *ngFor="let patient of patients">
-        <ion-label>
-          <h2>{{ patient.full_name }}</h2>
-          <p>Numero: {{ patient.assigned_number }}</p>
-        </ion-label>
-        <ion-button color="primary" (click)="callPatient(patient.id)">Chiama</ion-button>
-      </ion-item>
-      <ion-item *ngIf="patients.length === 0">
-        <ion-label>Nessun paziente in attesa per il tuo studio</ion-label>
-      </ion-item>
-    </ion-list>
+<ion-content [fullscreen]="true">
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Paziente in visita</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <!-- se c'è un currentPatient -->
+      <ng-container *ngIf="currentPatient; else noneInVisita">
+        <h2>{{ currentPatient?.full_name }}</h2>
+        <p>
+          Appuntamento: {{ currentPatient?.appointment_time | date:'HH:mm' }}
+        </p>
+      </ng-container>
+      <ng-template #noneInVisita>
+        <p>Nessun paziente in visita</p>
+      </ng-template>
+    </ion-card-content>
+  </ion-card>
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Prossimo in attesa</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <!-- se c'è un nextPatient -->
+      <ng-container *ngIf="nextPatient; else noneInAttesa">
+        <h2>{{ nextPatient?.full_name }}</h2>
+        <p>Numero: {{ nextPatient?.assigned_number }}</p>
+        <p>Appuntamento: {{ nextPatient?.appointment_time | date:'HH:mm' }}</p>
+        <ion-button expand="block" (click)="callNext()"
+          >Chiama prossimo</ion-button
+        >
+      </ng-container>
+      <ng-template #noneInAttesa>
+        <p>Non ci sono pazienti in attesa</p>
+      </ng-template>
+    </ion-card-content>
+  </ion-card>
 </ion-content>
