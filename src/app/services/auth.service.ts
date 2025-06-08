@@ -20,7 +20,7 @@ export class AuthService {
   /** Cache in memoria del profilo utente */
   profile$: Observable<UserProfile>;
 
-  //Ruolo corrente, inizialmente letto da localStorage */
+  //Ruolo corrente, inizialmente letto da localStorage
   private _role$ = new BehaviorSubject<string | null>(
     localStorage.getItem('role')
   );
