@@ -220,7 +220,6 @@ export class SegreteriaPage implements OnInit {
   // Logout
 
   logout() {
-    localStorage.removeItem('token');
-    this.router.navigate(['/login']);
+    this.authService.logout();
   }
 }

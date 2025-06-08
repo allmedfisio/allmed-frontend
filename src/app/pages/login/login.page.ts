@@ -1,7 +1,6 @@
 import { Component } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { environment } from 'src/environments/environment';
+import { AuthService } from 'src/app/services/auth.service';
 
 @Component({
   selector: 'app-login',
@@ -14,18 +13,27 @@ export class LoginPage {
   password = '';
   errorMessage = '';
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(private authService: AuthService, private router: Router) {}
 
-  login() {
-    this.http.post<{ token: string }>(`${environment.apiUrl}/auth/login`, { username: this.username, password: this.password })
-      .subscribe({
-        next: (response) => {
-          localStorage.setItem('token', response.token);
+  doLogin(): void {
+    // Chiamo AuthService.login() che salva token+role in localStorage
+    this.authService.login(this.username, this.password).subscribe({
+      next: () => {
+        // Se il login ha avuto successo, posso reindirizzare dove voglio.
+        // In genere, in base al ruolo, scelgo la homepage per quel ruolo.
+        const ruolo = this.authService.currentRole;
+        if (ruolo === 'segreteria' || ruolo === 'admin') {
           this.router.navigate(['/segreteria']);
-        },
-        error: (response) => {
-          this.errorMessage = response.error.error;
+        } else if (ruolo === 'medico') {
+          this.router.navigate(['/medico']);
+        } else {
+          // fallback
+          this.router.navigate(['/login']);
         }
-      });
+      },
+      error: (err) => {
+        this.errorMessage = err.error?.error || 'Errore di login';
+      },
+    });
   }
 }

@@ -8,6 +8,8 @@
     "strict": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "sourceMap": true,
@@ -18,10 +20,7 @@
     "importHelpers": true,
     "target": "es2022",
     "module": "es2020",
-    "lib": [
-      "es2018", 
-      "dom"
-    ],
+    "lib": ["es2018", "dom"],
     "useDefineForClassFields": false
   },
   "angularCompilerOptions": {

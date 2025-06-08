@@ -1,6 +1,23 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
     <ion-title>Studio {{ myStudyId }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button id="user-avatar-button">
+        <ion-avatar>
+          <img [src]="(userProfile$ | async)?.avatarUrl" alt="user image" />
+        </ion-avatar>
+      </ion-button>
+      <ion-popover trigger="user-avatar-button" dismiss-on-select="true">
+        <ng-template>
+          <ion-list lines="none">
+            <ion-item button (click)="logout()">
+              <ion-icon name="log-out-outline" slot="start"></ion-icon>
+              Logout
+            </ion-item>
+          </ion-list>
+        </ng-template>
+      </ion-popover>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 

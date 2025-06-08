@@ -2,8 +2,9 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { AlertController } from '@ionic/angular';
 import { Patient, PatientService } from '../../services/patient.service';
-import { firstValueFrom, Subscription, take } from 'rxjs';
+import { firstValueFrom, Subscription, Observable } from 'rxjs';
 import { DoctorService } from 'src/app/services/doctor.service';
+import { AuthService, UserProfile } from 'src/app/services/auth.service';
 
 @Component({
   selector: 'app-medico',
@@ -18,15 +19,19 @@ export class MedicoPage implements OnInit, OnDestroy {
   nextPatient: Patient | null = null;
   myStudyId!: number;
   private sub?: Subscription;
+  userProfile$!: Observable<UserProfile>;
 
   constructor(
     private route: ActivatedRoute,
     private patientService: PatientService,
     private doctorService: DoctorService,
-    private alertCtrl: AlertController
+    private alertCtrl: AlertController,
+    private authService: AuthService
   ) {}
 
   ngOnInit() {
+    // Sottoscrivi (via async pipe) al profilo
+    this.userProfile$ = this.authService.profile$;
     //Recupera lo studio dalla route: /medico/:id
     this.myStudyId = Number(this.route.snapshot.paramMap.get('id'));
 
@@ -117,6 +122,10 @@ export class MedicoPage implements OnInit, OnDestroy {
     } catch (err) {
       console.error('Errore in callNext:', err);
     }
+  }
+
+  logout() {
+    this.authService.logout();
   }
 
   /** Chiama il prossimo paziente in attesa
