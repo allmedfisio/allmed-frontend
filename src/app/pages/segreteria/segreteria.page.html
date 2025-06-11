@@ -1,5 +1,6 @@
 <ion-header>
-  <ion-toolbar>
+  <ion-toolbar color="primary">
+    <ion-title>Segreteria</ion-title>
     <ion-buttons slot="start">
       <ion-button (click)="openAddPatientModal()">
         <ion-icon slot="icon-only" name="person-add-outline"></ion-icon>
@@ -8,9 +9,6 @@
         <ion-icon slot="icon-only" name="person-outline"></ion-icon>
       </ion-button>
     </ion-buttons>
-
-    <ion-title>Dashboard Segreteria</ion-title>
-
     <ion-buttons slot="end">
       <ion-button id="user-avatar-button">
         <ion-avatar>
@@ -34,70 +32,72 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content>
+<ion-content [fullscreen]="true" class="ion-padding">
   <ng-container *ngIf="patientsByStatus$ | async as pdata; else loading">
-    <ion-row>
-      <ion-col size="6">
-        <h2>Pazienti in attesa</h2>
-        <ng-container
-          *ngFor="let group of pdata.waiting; trackBy: trackByStudy"
-        >
-          <h3>Studio {{ group.study }}</h3>
-          <ion-list>
-            <ion-item
-              *ngFor="let patient of group.patients; trackBy: trackByPatientId"
-            >
-              <ion-label>
-                <h2>{{ patient.full_name }}</h2>
-                <p>Numero: {{ patient.assigned_number }}</p>
-                <p>
-                  Orario appuntamento: {{ patient.appointment_time |
-                  date:'HH:mm'}}
-                </p>
-              </ion-label>
-              <ion-button slot="end" (click)="callPatient(patient)">
-                <ion-icon name="hand-left-outline"></ion-icon>
-              </ion-button>
-              <ion-button slot="end" (click)="openEditPatientModal(patient)">
-                <ion-icon name="create-outline"></ion-icon>
-              </ion-button>
-              <ion-button
-                slot="end"
-                color="danger"
-                (click)="removePatient(patient.id)"
-              >
-                <ion-icon name="trash-outline"></ion-icon>
-              </ion-button>
-            </ion-item>
-          </ion-list>
-        </ng-container>
-      </ion-col>
-
-      <ion-col size="6">
-        <h2>Medici attivi</h2>
-        <ng-container *ngIf="doctorsByStudy$ | async as ddata">
-          <ng-container *ngFor="let group of ddata; trackBy: trackByStudy">
+    <ion-grid>
+      <ion-row>
+        <ion-col sizeMd="6">
+          <h2>Pazienti in attesa</h2>
+          <ng-container
+            *ngFor="let group of pdata.waiting; trackBy: trackByStudy"
+          >
             <h3>Studio {{ group.study }}</h3>
             <ion-list>
               <ion-item
-                *ngFor="let doc of group.doctors; trackBy: trackByDoctorId"
+                *ngFor="let patient of group.patients; trackBy: trackByPatientId"
               >
                 <ion-label>
-                  <h2>{{ doc.name }}</h2>
+                  <h2>{{ patient.full_name }}</h2>
+                  <p>Numero: {{ patient.assigned_number }}</p>
                   <p>
-                    Paziente in visita:
-                    <strong>{{ doc.last_patient || 'Nessuno' }}</strong>
+                    Orario appuntamento: {{ patient.appointment_time |
+                    date:'HH:mm'}}
                   </p>
                 </ion-label>
+                <app-button slot="end" (click)="callPatient(patient)">
+                  <ion-icon name="hand-left-outline"></ion-icon>
+                </app-button>
+                <app-button slot="end" (click)="openEditPatientModal(patient)">
+                  <ion-icon name="create-outline"></ion-icon>
+                </app-button>
+                <app-button
+                  slot="end"
+                  color="danger"
+                  (click)="removePatient(patient.id)"
+                >
+                  <ion-icon name="trash-outline"></ion-icon>
+                </app-button>
               </ion-item>
             </ion-list>
           </ng-container>
-        </ng-container>
-      </ion-col>
-    </ion-row>
+        </ion-col>
+
+        <ion-col sizeMd="6">
+          <h2>Medici attivi</h2>
+          <ng-container *ngIf="doctorsByStudy$ | async as ddata">
+            <ng-container *ngFor="let group of ddata; trackBy: trackByStudy">
+              <h3>Studio {{ group.study }}</h3>
+              <ion-list>
+                <ion-item
+                  *ngFor="let doc of group.doctors; trackBy: trackByDoctorId"
+                >
+                  <ion-label>
+                    <h2>{{ doc.name }}</h2>
+                    <p>
+                      Paziente in visita:
+                      <strong>{{ doc.last_patient || 'Nessuno' }}</strong>
+                    </p>
+                  </ion-label>
+                </ion-item>
+              </ion-list>
+            </ng-container>
+          </ng-container>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
   </ng-container>
 
-  <!-- Spinner di caricamento -->
+  <!--Spinner di caricamento -->
   <ng-template #loading>
     <ion-spinner
       name="crescent"

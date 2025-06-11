@@ -7,14 +7,16 @@ import { IonicModule } from '@ionic/angular';
 import { MedicoPageRoutingModule } from './medico-routing.module';
 
 import { MedicoPage } from './medico.page';
+import { SharedModule } from 'src/app/shared/shared.module';
 
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
     IonicModule,
-    MedicoPageRoutingModule
+    MedicoPageRoutingModule,
+    SharedModule,
   ],
-  declarations: [MedicoPage]
+  declarations: [MedicoPage],
 })
 export class MedicoPageModule {}

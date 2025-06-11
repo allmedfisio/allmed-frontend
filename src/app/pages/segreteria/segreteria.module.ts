@@ -9,6 +9,7 @@ import { SegreteriaPageRoutingModule } from './segreteria-routing.module';
 import { SegreteriaPage } from './segreteria.page';
 import { AddPatientModalModule } from 'src/app/add-patient-modal/add-patient-modal.module';
 import { EditPatientModalModule } from 'src/app/edit-patient-modal/edit-patient-modal.module';
+import { SharedModule } from 'src/app/shared/shared.module';
 
 @NgModule({
   imports: [
@@ -17,8 +18,9 @@ import { EditPatientModalModule } from 'src/app/edit-patient-modal/edit-patient-
     IonicModule,
     SegreteriaPageRoutingModule,
     AddPatientModalModule,
-    EditPatientModalModule
+    EditPatientModalModule,
+    SharedModule,
   ],
-  declarations: [SegreteriaPage]
+  declarations: [SegreteriaPage],
 })
 export class SegreteriaPageModule {}

@@ -1,27 +1,27 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>login</ion-title>
-  </ion-toolbar>
-</ion-header>
-
-<ion-content [fullscreen]="true">
-  <ion-card>
+<ion-content class="ion-padding" color="light">
+  <ion-card class="login-card">
     <ion-card-header>
-      <ion-card-title>Accedi</ion-card-title>
+      <ion-card-title class="ion-text-center">Accedi</ion-card-title>
     </ion-card-header>
+
     <ion-card-content>
-      <ion-item>
+      <ion-item fill="outline">
         <ion-label position="floating">Username</ion-label>
-        <ion-input [(ngModel)]="username"></ion-input>
+        <ion-input [(ngModel)]="username" type="text"></ion-input>
       </ion-item>
-      <ion-item>
+
+      <ion-item fill="outline">
         <ion-label position="floating">Password</ion-label>
         <ion-input [(ngModel)]="password" type="password"></ion-input>
       </ion-item>
-      <ion-button expand="full" (click)="doLogin()">Login</ion-button>
-      <ion-text color="danger" *ngIf="errorMessage"
-        >{{ errorMessage }}</ion-text
-      >
+
+      <ion-button expand="block" class="ion-margin-top" (click)="doLogin()">
+        Login
+      </ion-button>
+
+      <ion-text color="danger" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </ion-text>
     </ion-card-content>
   </ion-card>
 </ion-content>

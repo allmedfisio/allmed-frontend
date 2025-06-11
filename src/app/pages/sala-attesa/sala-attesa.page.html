@@ -1,19 +1,15 @@
-<ion-header [translucent]="true">
+<ion-header translucent>
   <ion-toolbar color="primary">
     <ion-title>Sala Attesa</ion-title>
-    <ion-button
-      *ngIf="!unlocked"
-      (click)="unlockAudio()"
-      style="position: fixed; bottom: 10px; right: 10px; z-index: 1000"
-    >
+    <ion-button *ngIf="!unlocked" (click)="unlockAudio()" class="unlock-button">
       Abilita Suoni 🔊
     </ion-button>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
+<ion-content [fullscreen]="true" class="ion-padding">
   <ion-grid>
-    <ion-row>
+    <ion-row class="table-header">
       <ion-col size="4">
         <h2>Medici</h2>
       </ion-col>
@@ -26,7 +22,10 @@
     </ion-row>
 
     <ng-container *ngFor="let row of rows$ | async; trackBy: trackByStudy">
-      <ion-row [@highlight]="highlightedStudy === row.study ? 'on' : 'off'">
+      <ion-row
+        [@highlight]="highlightedStudy === row.study ? 'on' : 'off'"
+        class="data-row"
+      >
         <ion-col size="4">
           {{ row.doctorName }} (Studio {{ row.study }})
         </ion-col>

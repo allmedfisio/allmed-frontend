@@ -1,17 +1,34 @@
+/* sala-attesa.page.scss */
+.unlock-button {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  z-index: 1000;
+}
+
+.table-header h2 {
+  margin: 0;
+  text-align: center;
+}
+
+.data-row {
+  align-items: center;
+  border-bottom: 1px solid var(--ion-color-step-150);
+}
+
 .flash-animation {
-    animation: flash 1s ease-in-out infinite alternate;
+  animation: flash 1s ease-in-out infinite alternate;
+}
+
+@keyframes flash {
+  from {
+    background-color: transparent;
+    color: #d32f2f; // Rosso acceso
+    transform: scale(1);
   }
-  
-  @keyframes flash {
-    from {
-      background-color: transparent;
-      color: #d32f2f; // Rosso acceso
-      transform: scale(1);
-    }
-    to {
-      background-color: #d32f2f;
-      color: white;
-      transform: scale(1.2);
-    }
+  to {
+    background-color: #d32f2f;
+    color: white;
+    transform: scale(1.2);
   }
-  
+}

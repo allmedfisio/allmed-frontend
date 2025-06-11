@@ -1,0 +1,10 @@
+<ion-card>
+  <ion-card-header>
+    <ion-card-title>{{ title }}</ion-card-title>
+  </ion-card-header>
+  <ion-card-content>
+    <p *ngFor="let line of lines">
+      <strong>{{ line.label }}:</strong> {{ line.value }}
+    </p>
+  </ion-card-content>
+</ion-card>
