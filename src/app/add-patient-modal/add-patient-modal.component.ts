@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ModalController } from '@ionic/angular';
 import { PatientService } from '../services/patient.service';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-add-patient-modal',
@@ -28,17 +29,20 @@ export class AddPatientModalComponent implements OnInit {
     this.modalController.dismiss();
   }
 
-  addPatient() {
+  async addPatient() {
     if (!this.fullName || !this.assignedStudy || !this.appointmentTime) return;
     this.patientService
       .addPatient(this.fullName, this.assignedStudy!, this.appointmentTime)
       .pipe()
-      .subscribe((newPatient) => {
-        this.fullName = '';
-        this.assignedStudy = null;
-        this.appointmentTime = '';
+      .subscribe({
+        next: async (newPatient) => {
+          this.fullName = '';
+          this.assignedStudy = null;
+          this.appointmentTime = '';
+          await this.modalController.dismiss({ patient: newPatient });
+        },
+        error: (err) => console.error(err),
       });
-    this.dismiss();
   }
 
   generaOrariDisponibili() {

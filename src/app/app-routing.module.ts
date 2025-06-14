@@ -49,6 +49,10 @@ const routes: Routes = [
     loadChildren: () =>
       import('./pages/login/login.module').then((m) => m.LoginPageModule),
   },
+  {
+    path: 'ticket-config',
+    loadChildren: () => import('./pages/ticket-config/ticket-config.module').then( m => m.TicketConfigPageModule)
+  },
 ];
 
 @NgModule({

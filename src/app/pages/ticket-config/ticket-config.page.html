@@ -1,0 +1,50 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>Configura Ticket</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <!-- il form esiste sempre (lo inizializziamo nel costruttore) -->
+  <form [formGroup]="form">
+    <ion-item>
+      <ion-label position="stacked">Testo Header</ion-label>
+      <ion-input formControlName="headerText"></ion-input>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">URL Logo/Banner</ion-label>
+      <ion-input formControlName="headerImageUrl"></ion-input>
+    </ion-item>
+
+    <ion-item lines="none">
+      <ion-label position="stacked">Promo</ion-label>
+    </ion-item>
+    <quill-editor
+      #quillEditor
+      formControlName="promoHtml"
+      [modules]="quillModules"
+      theme="snow"
+      (onEditorCreated)="onEditorCreated($event)"
+      style="height: 200px; margin-bottom: 1rem"
+    >
+    </quill-editor>
+
+    <div class="promo-preview">
+      <strong>Anteprima promo:</strong>
+      <div [innerHTML]="form.value.promoHtml" class="preview-box"></div>
+    </div>
+
+    <ion-item>
+      <ion-label position="stacked">Testo Footer</ion-label>
+      <ion-input formControlName="footerText"></ion-input>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Colore Primario</ion-label>
+      <ion-input type="color" formControlName="primaryColor"></ion-input>
+    </ion-item>
+
+    <ion-button expand="block" (click)="save()">Salva</ion-button>
+  </form>
+</ion-content>

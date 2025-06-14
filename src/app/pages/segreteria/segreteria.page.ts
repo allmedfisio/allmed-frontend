@@ -1,14 +1,23 @@
-import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Injector,
+  OnInit,
+  runInInjectionContext,
+} from '@angular/core';
 import { ModalController, ToastController } from '@ionic/angular';
 import { AddPatientModalComponent } from 'src/app/add-patient-modal/add-patient-modal.component';
 import { AddDoctorModalComponent } from 'src/app/add-doctor-modal/add-doctor-modal.component';
 import { EditPatientModalComponent } from 'src/app/edit-patient-modal/edit-patient-modal.component';
 import { Patient, PatientService } from 'src/app/services/patient.service';
-import { Observable, take, firstValueFrom } from 'rxjs';
+import { Observable, take, firstValueFrom, Subscription } from 'rxjs';
 import { map, tap } from 'rxjs/operators';
 import { Doctor, DoctorService } from 'src/app/services/doctor.service';
 import { AuthService, UserProfile } from 'src/app/services/auth.service';
+import {
+  TemplateService,
+  TicketTemplate,
+} from 'src/app/services/template.service';
 
 interface PatientGroup {
   study: number;
@@ -35,6 +44,10 @@ export class SegreteriaPage implements OnInit {
   }>;
   doctorsByStudy$!: Observable<DoctorGroup[]>;
 
+  // memorizzo qui il template, così non userò mai più getTemplate() a runtime
+  ticketTpl!: TicketTemplate;
+  private tplSub?: Subscription;
+
   // Campi per le modali
   fullName: string = '';
   assignedStudy: number | null = null;
@@ -46,12 +59,13 @@ export class SegreteriaPage implements OnInit {
   userImage: string = 'path-to-image.jpg';
 
   constructor(
-    private router: Router,
     private modalController: ModalController,
     private toastCtrl: ToastController,
     private patientService: PatientService,
     private doctorService: DoctorService,
-    private authService: AuthService
+    private authService: AuthService,
+    private tplService: TemplateService,
+    private injector: Injector
   ) {}
 
   ngOnInit() {
@@ -68,6 +82,17 @@ export class SegreteriaPage implements OnInit {
       tap((list) => console.log('SegreteriaPage: nuovi medici ricevuti', list)),
       map((list) => this.groupByStudy(list))
     );
+
+    // Precarico il template del ticket
+    runInInjectionContext(this.injector, () => {
+      this.tplSub = this.tplService.getTemplate().subscribe((tpl) => {
+        this.ticketTpl = tpl;
+      });
+    });
+  }
+
+  ngOnDestroy() {
+    this.tplSub?.unsubscribe();
   }
 
   // Funzioni di Patient
@@ -203,6 +228,113 @@ export class SegreteriaPage implements OnInit {
       },
     });
     return await modal.present();
+  }
+
+  // Print del ticket
+  async printTicket(patient: Patient) {
+    //if (!this.lastCreatedPatient) return;
+    if (!this.ticketTpl) return;
+
+    // 1) Leggo template
+    const tpl = this.ticketTpl;
+    //const num = this.lastCreatedPatient.assigned_number;
+    const num = patient.assigned_number;
+    const studio = patient.assigned_study;
+
+    // Definisco stili CSS
+    const styles = `
+  <style>
+    @page {
+      size: auto;
+      margin: 0;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    .ticket {
+      padding: 1rem;
+      box-sizing: border-box;
+      text-align: center;
+      font-family: Poppins, sans-serif
+    }
+    .header-image {
+      max-width: 100%;
+      max-height: 150px;        /* altezza massima header */
+      object-fit: contain;
+      display: block;
+      margin: 0 auto .5rem;
+    }
+    .queue {
+      font-size: 1.5rem;
+      margin:1rem 0;
+      color: #1f2b54;
+    }
+    .promo {
+      display: flex;                   /* usa flex */
+      justify-content: center;         /* centra orizzontalmente */
+      align-items: center; 
+      width: 100%;
+      height: 300px;            /* altezza massima promo */
+      overflow: hidden;
+    }
+    .promo-content {
+      transform-origin: center center;
+    }
+  </style>`;
+
+    // 2) Costruisco HTML
+    const html = `
+  <div class="ticket">
+    <img src="${tpl.headerImageUrl}" class="header-image" />
+    <h2 style="color:${tpl.styleJson.primaryColor}; margin:.5rem 0;">
+      ${tpl.headerText}
+    </h2>
+    <p class="queue">Numero di coda</p>
+      <div class="queue">#${num}</div>
+      <p class="queue">Studio assegnato</p>
+      <div class="queue">#${studio}</div>
+    <div class="promo">
+      <div class="promo-content">
+        ${tpl.promoHtml}
+      </div>
+    </div>
+    <footer style="margin-top:1rem; font-size:1rem;">
+      ${tpl.footerText}
+    </footer>
+  </div>`;
+
+    // Script per ridimensionamento automatico
+    const script = `
+  <script>
+    window.addEventListener('load', () => {
+      const promo = document.querySelector('.promo');
+      const content = document.querySelector('.promo-content');
+      if (promo && content) {
+        const scaleX = promo.clientWidth  / content.scrollWidth;
+        const scaleY = promo.clientHeight / content.scrollHeight;
+        const scale  = Math.min(scaleX, scaleY, 1);
+        content.style.transform = 'scale(' + scale + ')';
+      }
+      window.print();
+      window.close();
+    });
+  </script>`;
+
+    // 3) Apro popup e stampo
+    const popup = window.open('', '_blank', 'width=400,height=600');
+    popup!.document.write(`
+    <html>
+      <head>
+        <title>Ticket AllMed</title>
+          ${styles}
+      </head>
+      <body>
+        ${html}
+        ${script}
+      </body>
+    </html>`);
+    popup!.document.close();
   }
 
   // Toast

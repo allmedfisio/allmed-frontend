@@ -1,0 +1,10 @@
+.promo-preview {
+  margin: 1rem 0;
+  .preview-box {
+    border: 1px solid var(--ion-color-medium);
+    border-radius: 8px;
+    padding: 0.75rem;
+    background: var(--ion-color-light);
+    min-height: 80px;
+  }
+}

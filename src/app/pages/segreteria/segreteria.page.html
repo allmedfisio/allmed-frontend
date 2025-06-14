@@ -54,6 +54,9 @@
                     date:'HH:mm'}}
                   </p>
                 </ion-label>
+                <app-button slot="end" (click)="printTicket(patient)">
+                  <ion-icon name="print-outline"></ion-icon>
+                </app-button>
                 <app-button slot="end" (click)="callPatient(patient)">
                   <ion-icon name="hand-left-outline"></ion-icon>
                 </app-button>
