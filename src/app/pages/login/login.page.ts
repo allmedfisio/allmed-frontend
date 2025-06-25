@@ -26,6 +26,8 @@ export class LoginPage {
           this.router.navigate(['/segreteria']);
         } else if (ruolo === 'medico') {
           this.router.navigate(['/medico']);
+        } else if (ruolo === 'sala-attesa') {
+          this.router.navigate(['/sala-attesa']);
         } else {
           // fallback
           this.router.navigate(['/login']);

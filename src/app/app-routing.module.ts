@@ -41,7 +41,7 @@ const routes: Routes = [
       ),
     canActivate: [AuthGuardService],
     data: {
-      roles: ['admin', 'segreteria'],
+      roles: ['admin', 'segreteria', 'sala-attesa'],
     },
   },
   {
@@ -51,7 +51,10 @@ const routes: Routes = [
   },
   {
     path: 'ticket-config',
-    loadChildren: () => import('./pages/ticket-config/ticket-config.module').then( m => m.TicketConfigPageModule)
+    loadChildren: () =>
+      import('./pages/ticket-config/ticket-config.module').then(
+        (m) => m.TicketConfigPageModule
+      ),
   },
 ];
 
