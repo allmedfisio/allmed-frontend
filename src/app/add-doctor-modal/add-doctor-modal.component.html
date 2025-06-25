@@ -1,3 +1,46 @@
-<p>
-  add-doctor-modal works!
-</p>
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Aggiungi Medico</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="dismiss()">Chiudi</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<div>
+  <form (ngSubmit)="addDoctor()">
+    <ion-item>
+      <ion-label position="stacked">Medico</ion-label>
+      <ion-select
+        [(ngModel)]="selectedDoctor"
+        name="selectedDoctor"
+        placeholder="Seleziona medico"
+        required
+      >
+        <ion-select-option *ngFor="let doc of doctors" [value]="doc">
+          {{ doc }}
+        </ion-select-option>
+      </ion-select>
+    </ion-item>
+    <ion-item>
+      <ion-label position="stacked">Studio</ion-label>
+      <ion-select
+        [(ngModel)]="assignedStudy"
+        name="assignedStudy"
+        placeholder="Seleziona studio"
+        required
+      >
+        <ion-select-option *ngFor="let s of studies" [value]="s">
+          {{ s === "Palestra" ? s : "Studio " + s }}
+        </ion-select-option>
+      </ion-select>
+    </ion-item>
+    <ion-button
+      expand="full"
+      type="submit"
+      [disabled]="!selectedDoctor || !assignedStudy"
+    >
+      Aggiungi
+    </ion-button>
+  </form>
+</div>

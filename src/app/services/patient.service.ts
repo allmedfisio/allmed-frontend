@@ -9,8 +9,8 @@ export interface Patient {
   id: string;
   full_name: string;
   assigned_number: number;
-  assigned_study: number;
-  status: 'in_attesa' | 'in_visita' | 'completato';
+  assigned_study: number | string;
+  status: 'prenotato' | 'in_attesa' | 'in_visita' | 'completato';
   appointment_time: string;
 }
 
@@ -48,10 +48,12 @@ export class PatientService {
         // ① Se è già presente, ne aggiorni solo i campi modificati
         const updated = { ...currentList[idx], ...payload };
         currentList[idx] = updated;
+        console.log('currentList: ' + currentList);
       } else {
         // ② Altrimenti è un nuovo paziente: lo aggiungi in coda
         currentList.push(payload as Patient);
       }
+
       // ③ Emetti la nuova lista
       this._patients$.next([...currentList]);
     });
@@ -77,7 +79,7 @@ Aggiunge un nuovo paziente
 */
   addPatient(
     full_name: string,
-    assigned_study: number,
+    assigned_study: number | string,
     appointment_time: string
   ): Observable<Patient> {
     return this.http.post<Patient>(`${environment.apiUrl}/patients`, {
@@ -85,6 +87,19 @@ Aggiunge un nuovo paziente
       assigned_study,
       appointment_time,
     });
+  }
+
+  // Aggiunge pazienti in bulk da excel
+  bulkCreate(patients: any[]): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/patients/bulk`, patients);
+  }
+
+  // Segna i pazienti prenotati come in-attesa
+  markArrived(patientId: string): Observable<{ id: string; status: string }> {
+    return this.http.put<{ id: string; status: string }>(
+      `${environment.apiUrl}/patients/${patientId}/arrive`,
+      {}
+    );
   }
 
   /**
@@ -117,6 +132,11 @@ Rimuove un paziente
     return this.http.delete<void>(
       `${environment.apiUrl}/patients/${patientId}`
     );
+  }
+
+  // Rimuove tutti i pazienti -> non utilizzata per adesso
+  deleteAllPatients(): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/patients`);
   }
 
   //Ritorna un Observable di { current, next } per uno studio

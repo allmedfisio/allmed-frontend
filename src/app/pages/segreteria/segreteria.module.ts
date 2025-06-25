@@ -10,6 +10,7 @@ import { SegreteriaPage } from './segreteria.page';
 import { AddPatientModalModule } from 'src/app/add-patient-modal/add-patient-modal.module';
 import { EditPatientModalModule } from 'src/app/edit-patient-modal/edit-patient-modal.module';
 import { SharedModule } from 'src/app/shared/shared.module';
+import { AddDoctorModalModule } from 'src/app/add-doctor-modal/add-doctor-modal.module';
 
 @NgModule({
   imports: [
@@ -19,6 +20,7 @@ import { SharedModule } from 'src/app/shared/shared.module';
     SegreteriaPageRoutingModule,
     AddPatientModalModule,
     EditPatientModalModule,
+    AddDoctorModalModule,
     SharedModule,
   ],
   declarations: [SegreteriaPage],

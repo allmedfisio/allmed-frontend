@@ -11,10 +11,11 @@ import { firstValueFrom } from 'rxjs';
 })
 export class AddPatientModalComponent implements OnInit {
   fullName: string = '';
-  assignedStudy: number | null = null;
+  assignedStudy!: number | string;
   appointmentTime: string = '';
   orariDisponibili: string[] = [];
   orarioAppuntamento: string = '';
+  studies: Array<number | string> = [1, 2, 3, 4, 5, 6, 'Palestra'];
 
   constructor(
     private patientService: PatientService,
@@ -32,14 +33,11 @@ export class AddPatientModalComponent implements OnInit {
   async addPatient() {
     if (!this.fullName || !this.assignedStudy || !this.appointmentTime) return;
     this.patientService
-      .addPatient(this.fullName, this.assignedStudy!, this.appointmentTime)
+      .addPatient(this.fullName, this.assignedStudy, this.appointmentTime)
       .pipe()
       .subscribe({
         next: async (newPatient) => {
-          this.fullName = '';
-          this.assignedStudy = null;
-          this.appointmentTime = '';
-          await this.modalController.dismiss({ patient: newPatient });
+          this.modalController.dismiss({ patient: newPatient });
         },
         error: (err) => console.error(err),
       });

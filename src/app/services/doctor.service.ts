@@ -8,7 +8,7 @@ import { environment } from 'src/environments/environment';
 export interface Doctor {
   id: string;
   name: string;
-  study: number;
+  study: number | string;
   last_patient?: string;
 }
 
@@ -48,7 +48,7 @@ export class DoctorService {
   }
 
   //Aggiunge un nuovo medico
-  addDoctor(name: string, study: number): Observable<Doctor> {
+  addDoctor(name: string, study: number | string): Observable<Doctor> {
     return this.http
       .post<Doctor>(`${environment.apiUrl}/doctors`, {
         name,

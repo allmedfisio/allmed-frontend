@@ -17,7 +17,11 @@
     </ion-item>
     <ion-item>
       <ion-label position="stacked">Studio</ion-label>
-      <ion-input type="number" [(ngModel)]="assignedStudy"></ion-input>
+      <ion-select [(ngModel)]="assignedStudy" placeholder="Seleziona studio">
+        <ion-select-option *ngFor="let s of studi" [value]="s">
+          {{ s === "Palestra" ? s : "Studio " + s }}
+        </ion-select-option>
+      </ion-select>
     </ion-item>
     <ion-item>
       <ion-label position="stacked">Orario Appuntamento</ion-label>

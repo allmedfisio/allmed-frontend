@@ -1,28 +1,43 @@
 <ion-header>
   <ion-toolbar color="primary">
-    <ion-title>Segreteria</ion-title>
     <ion-buttons slot="start">
-      <ion-button (click)="openAddPatientModal()">
-        <ion-icon slot="icon-only" name="person-add-outline"></ion-icon>
+      <ion-button slot="start" (click)="openAppMenu()" fill="clear">
+        <ion-img
+          slot="start"
+          src="assets/logo-clinica.png"
+          style="width: 70px; height: 70px"
+        >
+        </ion-img>
       </ion-button>
-      <ion-button (click)="openAddDoctorModal()">
-        <ion-icon slot="icon-only" name="person-outline"></ion-icon>
+      <ion-button expand="block" (click)="fileInput.click()">
+        <ion-icon slot="icon-only" name="cloud-upload-outline"></ion-icon>
       </ion-button>
     </ion-buttons>
+
+    <ion-title>Segreteria</ion-title>
+    <input
+      #fileInput
+      type="file"
+      hidden
+      (change)="onFileSelected($event)"
+      accept=".xls,.xlsx"
+    />
     <ion-buttons slot="end">
-      <ion-button id="user-avatar-button">
+      <ion-chip id="user-avatar-button" color="light">
         <ion-avatar>
           <img [src]="(userProfile$ | async)?.avatarUrl" alt="user image" />
         </ion-avatar>
-      </ion-button>
+        <ion-label>{{ (userProfile$ | async)?.name }}</ion-label>
+      </ion-chip>
       <ion-popover trigger="user-avatar-button" dismiss-on-select="true">
         <ng-template>
           <ion-list lines="none">
-            <ion-list-header>
-              {{ (userProfile$ | async)?.name }}
-            </ion-list-header>
-            <ion-item button (click)="logout()">
-              <ion-icon name="log-out-outline" slot="start"></ion-icon>
+            <ion-item button (click)="logout()" class="section-title">
+              <ion-icon
+                name="log-out-outline"
+                slot="start"
+                class="icon"
+              ></ion-icon>
               Logout
             </ion-item>
           </ion-list>
@@ -32,67 +47,185 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding">
+<ion-content
+  [fullscreen]="true"
+  class="ion-padding segreteria-content"
+  id="segreteria-main"
+>
   <ng-container *ngIf="patientsByStatus$ | async as pdata; else loading">
     <ion-grid>
       <ion-row>
-        <ion-col sizeMd="6">
-          <h2>Pazienti in attesa</h2>
-          <ng-container
-            *ngFor="let group of pdata.waiting; trackBy: trackByStudy"
-          >
-            <h3>Studio {{ group.study }}</h3>
-            <ion-list>
-              <ion-item
+        <ion-col size-md="5">
+          <ion-segment mode="ios" color="primary" [(ngModel)]="segment">
+            <ion-segment-button value="in_attesa">
+              <ion-label>In attesa</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="prenotato">
+              <ion-label>Prenotati</ion-label>
+            </ion-segment-button>
+          </ion-segment>
+        </ion-col>
+        <ion-col size-md="2">
+          <!-- lascio vuoto per occupare spazio -->
+        </ion-col>
+        <ion-col size-md="5">
+          <!-- lascio vuoto per occupare metà griglia -->
+        </ion-col>
+      </ion-row>
+      <ion-row>
+        <ion-col sizeMd="5">
+          <div *ngIf="segment === 'in_attesa'">
+            <h2 class="section-title">Pazienti in attesa</h2>
+            <ng-container
+              *ngFor="let group of pdata.waiting; trackBy: trackByStudy"
+            >
+              <ng-container *ngIf="isNumber(group.study); else plainLabel">
+                <h3 class="studio">Studio {{ group.study }}</h3>
+              </ng-container>
+              <ng-template #plainLabel>
+                <h3 class="studio">{{ group.study }}</h3>
+              </ng-template>
+              <ion-card
+                class="card-soft"
                 *ngFor="let patient of group.patients; trackBy: trackByPatientId"
               >
-                <ion-label>
-                  <h2>{{ patient.full_name }}</h2>
-                  <p>Numero: {{ patient.assigned_number }}</p>
-                  <p>
-                    Orario appuntamento: {{ patient.appointment_time |
-                    date:'HH:mm'}}
-                  </p>
-                </ion-label>
-                <app-button slot="end" (click)="printTicket(patient)">
-                  <ion-icon name="print-outline"></ion-icon>
-                </app-button>
-                <app-button slot="end" (click)="callPatient(patient)">
-                  <ion-icon name="hand-left-outline"></ion-icon>
-                </app-button>
-                <app-button slot="end" (click)="openEditPatientModal(patient)">
-                  <ion-icon name="create-outline"></ion-icon>
-                </app-button>
-                <app-button
-                  slot="end"
-                  color="danger"
-                  (click)="removePatient(patient.id)"
-                >
-                  <ion-icon name="trash-outline"></ion-icon>
-                </app-button>
-              </ion-item>
-            </ion-list>
-          </ng-container>
+                <ion-card-content>
+                  <ion-grid fixed>
+                    <ion-row>
+                      <ion-col size="9">
+                        <h2 class="name">{{ patient.full_name }}</h2>
+                        <h2 class="study">
+                          Numero: {{ patient.assigned_number }}
+                        </h2>
+                        <h2 class="app">
+                          Orario appuntamento: {{ patient.appointment_time |
+                          date:'HH:mm'}}
+                        </h2>
+                      </ion-col>
+                      <ion-col size="3">
+                        <ion-button size="small" (click)="printTicket(patient)">
+                          <ion-icon name="print-outline"></ion-icon>
+                        </ion-button>
+                        <ion-button size="small" (click)="callPatient(patient)">
+                          <ion-icon name="hand-left-outline"></ion-icon>
+                        </ion-button>
+                        <ion-button
+                          size="small"
+                          (click)="openEditPatientModal(patient)"
+                        >
+                          <ion-icon name="create-outline"></ion-icon>
+                        </ion-button>
+                        <ion-button
+                          size="small"
+                          color="danger"
+                          (click)="removePatient(patient.id)"
+                        >
+                          <ion-icon name="trash-outline"></ion-icon>
+                        </ion-button>
+                      </ion-col>
+                    </ion-row>
+                  </ion-grid>
+                </ion-card-content>
+              </ion-card>
+            </ng-container>
+          </div>
+          <div *ngIf="segment === 'prenotato'">
+            <h2 class="section-title">Pazienti prenotati</h2>
+            <ng-container
+              *ngFor="let group of pdata.booked; trackBy: trackByStudy"
+            >
+              <ng-container *ngIf="isNumber(group.study); else plainLabel">
+                <h3 class="studio">Studio {{ group.study }}</h3>
+              </ng-container>
+              <ng-template #plainLabel>
+                <h3 class="studio">{{ group.study }}</h3>
+              </ng-template>
+              <ion-card
+                class="card-soft"
+                *ngFor="let patient of group.patients; trackBy: trackByPatientId"
+              >
+                <ion-card-content>
+                  <ion-grid fixed>
+                    <ion-row>
+                      <ion-col size="9">
+                        <h2 class="name">{{ patient.full_name }}</h2>
+                        <h2 class="study">
+                          Numero: {{ patient.assigned_number }}
+                        </h2>
+                        <h2 class="app">
+                          Orario appuntamento: {{ patient.appointment_time |
+                          date:'HH:mm'}}
+                        </h2>
+                      </ion-col>
+                      <ion-col size="3">
+                        <ion-button
+                          size="small"
+                          (click)="patientArrived(patient)"
+                        >
+                          <ion-icon name="checkmark-done-outline"></ion-icon>
+                        </ion-button>
+                        <ion-button
+                          size="small"
+                          (click)="openEditPatientModal(patient)"
+                        >
+                          <ion-icon name="create-outline"></ion-icon>
+                        </ion-button>
+                        <ion-button
+                          size="small"
+                          color="danger"
+                          (click)="removePatient(patient.id)"
+                        >
+                          <ion-icon name="trash-outline"></ion-icon>
+                        </ion-button>
+                      </ion-col>
+                    </ion-row>
+                  </ion-grid>
+                </ion-card-content>
+              </ion-card>
+            </ng-container>
+          </div>
         </ion-col>
-
-        <ion-col sizeMd="6">
-          <h2>Medici attivi</h2>
+        <ion-col size-md="2" class="divider-col">
+          <!-- divider -->
+          <div class="vertical-divider"></div>
+        </ion-col>
+        <ion-col sizeMd="5">
+          <h2 class="section-title">Medici attivi</h2>
           <ng-container *ngIf="doctorsByStudy$ | async as ddata">
             <ng-container *ngFor="let group of ddata; trackBy: trackByStudy">
-              <h3>Studio {{ group.study }}</h3>
-              <ion-list>
-                <ion-item
-                  *ngFor="let doc of group.doctors; trackBy: trackByDoctorId"
-                >
-                  <ion-label>
-                    <h2>{{ doc.name }}</h2>
-                    <p>
-                      Paziente in visita:
-                      <strong>{{ doc.last_patient || 'Nessuno' }}</strong>
-                    </p>
-                  </ion-label>
-                </ion-item>
-              </ion-list>
+              <ng-container *ngIf="isNumber(group.study); else plainLabel">
+                <h3 class="studio">Studio {{ group.study }}</h3>
+              </ng-container>
+              <ng-template #plainLabel>
+                <h3 class="studio">{{ group.study }}</h3>
+              </ng-template>
+              <ion-card
+                class="card-soft"
+                *ngFor="let doc of group.doctors; trackBy: trackByDoctorId"
+              >
+                <ion-card-content>
+                  <ion-grid fixed>
+                    <ion-row>
+                      <ion-col size="9">
+                        <h2 class="name">{{ doc.name }}</h2>
+                        <h2 class="study">
+                          Paziente in visita:
+                          <strong>{{ doc.last_patient || 'Nessuno' }}</strong>
+                        </h2>
+                      </ion-col>
+                      <ion-col size="3" class="doc-button-col">
+                        <ion-button
+                          size="small"
+                          color="danger"
+                          (click)="removeDoctor(doc.id)"
+                        >
+                          <ion-icon name="trash-outline"></ion-icon>
+                        </ion-button>
+                      </ion-col>
+                    </ion-row>
+                  </ion-grid>
+                </ion-card-content>
+              </ion-card>
             </ng-container>
           </ng-container>
         </ion-col>

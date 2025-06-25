@@ -5,7 +5,13 @@ import {
   OnInit,
   runInInjectionContext,
 } from '@angular/core';
-import { ModalController, ToastController } from '@ionic/angular';
+import {
+  ModalController,
+  ToastController,
+  LoadingController,
+  AlertController,
+  MenuController,
+} from '@ionic/angular';
 import { AddPatientModalComponent } from 'src/app/add-patient-modal/add-patient-modal.component';
 import { AddDoctorModalComponent } from 'src/app/add-doctor-modal/add-doctor-modal.component';
 import { EditPatientModalComponent } from 'src/app/edit-patient-modal/edit-patient-modal.component';
@@ -18,14 +24,15 @@ import {
   TemplateService,
   TicketTemplate,
 } from 'src/app/services/template.service';
+import * as XLSX from 'xlsx';
 
 interface PatientGroup {
-  study: number;
+  study: number | string;
   patients: Patient[];
 }
 
 interface DoctorGroup {
-  study: number;
+  study: number | string;
   doctors: Doctor[];
 }
 
@@ -39,10 +46,12 @@ interface DoctorGroup {
 export class SegreteriaPage implements OnInit {
   userProfile$!: Observable<UserProfile>;
   patientsByStatus$!: Observable<{
-    waiting: { study: number; patients: Patient[] }[];
-    inVisit: { study: number; patients: Patient[] }[];
+    booked: { study: number | string; patients: Patient[] }[];
+    waiting: { study: number | string; patients: Patient[] }[];
+    inVisit: { study: number | string; patients: Patient[] }[];
   }>;
   doctorsByStudy$!: Observable<DoctorGroup[]>;
+  segment: 'in_attesa' | 'prenotato' = 'in_attesa';
 
   // memorizzo qui il template, così non userò mai più getTemplate() a runtime
   ticketTpl!: TicketTemplate;
@@ -54,6 +63,9 @@ export class SegreteriaPage implements OnInit {
   doctorName: string = '';
   doctorStudy: number = NaN;
 
+  // File per upload excel
+  file: File | null = null;
+
   // Dati dell'user -> Da modificare
   userName: string = 'Nome Utente';
   userImage: string = 'path-to-image.jpg';
@@ -61,6 +73,9 @@ export class SegreteriaPage implements OnInit {
   constructor(
     private modalController: ModalController,
     private toastCtrl: ToastController,
+    private loadingCtrl: LoadingController,
+    private alertCtrl: AlertController,
+    private menuCtrl: MenuController,
     private patientService: PatientService,
     private doctorService: DoctorService,
     private authService: AuthService,
@@ -74,6 +89,7 @@ export class SegreteriaPage implements OnInit {
 
     // Divide i pazienti in base allo status
     this.patientsByStatus$ = this.patientService.patients$.pipe(
+      tap((list) => console.log('PatientBystatus', list)),
       map((list) => this.groupByStatus(list))
     );
 
@@ -136,25 +152,145 @@ export class SegreteriaPage implements OnInit {
     }
   }
 
-  // Funzioni di Doctor
-
-  addDoctor() {
-    if (!this.doctorName || isNaN(this.doctorStudy)) return;
-    this.doctorService
-      .addDoctor(this.doctorName, this.doctorStudy)
-      .subscribe(() => {
-        this.doctorName = '';
-        this.doctorStudy = NaN;
-      });
+  async patientArrived(patient: Patient): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.patientService.markArrived(patient.id).pipe(take(1))
+      );
+      this.presentToast(`Paziente passato in attesa`, 'success');
+    } catch (err: any) {
+      this.presentToast(`Errore: ${err.message}`, 'danger');
+    }
   }
+
+  // Funzioni di Doctor
 
   removeDoctor(id: string) {
     this.doctorService.removeDoctor(id).subscribe();
   }
 
-  // ========== Grouping Helpers ==========
+  // Funzioni per upload e parsing documento excel pazienti
+  onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    this.file = input.files && input.files.length ? input.files[0] : null;
+    this.importPatients();
+  }
+
+  async importPatients() {
+    if (!this.file) return;
+    // ① Presenta lo spinner
+    const loading = await this.loadingCtrl.create({
+      message: 'Caricamento pazienti…',
+      spinner: 'crescent',
+    });
+    await loading.present();
+
+    try {
+      // Estrai righe da XLS
+      const buffer = await this.file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows: any[] = XLSX.utils.sheet_to_json(sheet, {
+        header: 1,
+        raw: true,
+      });
+
+      // Trova indici delle colonne
+      const headers = rows[0] as string[];
+      const idxDate = headers.indexOf('Data Ora');
+      const idxName = headers.indexOf('Paziente');
+      const idxRoom = headers.indexOf('Stanza');
+      if (idxDate < 0 || idxName < 0 || idxRoom < 0) {
+        console.error('Colonne mancanti:', headers);
+        throw new Error(
+          'Assicurati che gli header siano esattamente "Data Ora", "Paziente", "Stanza"'
+        );
+      }
+
+      // Filtra e mappa i pazienti
+      const dataRows = rows
+        .slice(1)
+        // rimuovo righe incomplete
+        .filter((r) => r[idxDate] != null && r[idxName] && r[idxRoom]);
+
+      const patients = dataRows.map((r) => {
+        // Parsing Data/Ora
+        const rawDate = r[idxDate];
+        let dt: Date;
+
+        if (typeof rawDate === 'number') {
+          // seriale Excel
+          const d = XLSX.SSF.parse_date_code(rawDate);
+          dt = new Date(Date.UTC(d.y, d.m - 1, d.d, d.H, d.M, d.S));
+        } else {
+          // stringa “11/06/2025 18:00:00” (anche con doppio spazio)
+          const txt = String(rawDate).trim().replace(/\s+/g, ' ');
+          const [datePart, timePart] = txt.split(' ');
+          const [day, month, year] = datePart.split('/').map((n) => +n);
+          const [hour, minute, second] = timePart.split(':').map((n) => +n);
+          dt = new Date(year, month - 1, day, hour, minute, second);
+        }
+
+        if (isNaN(dt.getTime())) {
+          throw new Error(`Data non valida: ${rawDate}`);
+        }
+
+        // Parsing room: numeric or text (Studio X or Palestra)
+        const rawRoom = String(r[idxRoom]).trim();
+        const match = rawRoom.match(/\d+/);
+        // Se match esiste (es. “Studio 4”), uso il numero
+        // Altrimenti (es. “Palestra”), mantengo tutta la stringa
+        const assignedStudy = match ? Number(match[0]) : rawRoom;
+
+        // Camel Case nome
+        const rawName = String(r[idxName]).trim();
+        const full_name = this.toCamelCase(rawName);
+
+        // crea una ISO senza 'Z', es. "2025-06-11T18:30:00"
+        const localIso = dt.toISOString().slice(0, 19);
+
+        return {
+          full_name,
+          assigned_study: assignedStudy,
+          appointment_time: localIso,
+        };
+      });
+
+      if (!patients.length) {
+        console.warn('Nessun paziente valido trovato.');
+        return;
+      }
+
+      // Invio al backend
+      this.patientService.bulkCreate(patients).toPromise();
+
+      // Success toast
+      const toast = await this.toastCtrl.create({
+        message: 'Import dei pazienti riuscito!',
+        duration: 2000,
+        color: 'success',
+      });
+      await toast.present();
+
+      this.file = null;
+    } catch (err: any) {
+      console.error(err);
+      const toast = await this.toastCtrl.create({
+        message: 'Errore import: ' + err.message,
+        duration: 3000,
+        color: 'danger',
+      });
+      await toast.present();
+    } finally {
+      // ⑦ Nascondi spinner
+      await loading.dismiss();
+    }
+  }
+
+  // ========== Helpers ==========
 
   private groupByStatus(list: Patient[]): {
+    booked: PatientGroup[];
     waiting: PatientGroup[];
     inVisit: PatientGroup[];
   } {
@@ -170,26 +306,85 @@ export class SegreteriaPage implements OnInit {
       // Raggruppo per studio
       const studies = Array.from(
         new Set(slice.map((p) => p.assigned_study))
-      ).sort((a, b) => a - b);
+      ).sort((a, b) => {
+        const aIsNum = typeof a === 'number';
+        const bIsNum = typeof b === 'number';
+
+        if (aIsNum && bIsNum) {
+          // entrambi numeri: ordina numericamente
+          return (a as number) - (b as number);
+        } else if (aIsNum) {
+          // a numero, b stringa: a prima
+          return -1;
+        } else if (bIsNum) {
+          // b numero, a stringa: b prima
+          return 1;
+        } else {
+          // entrambi stringhe: ordina alfabeticamente
+          return String(a).localeCompare(String(b));
+        }
+      });
       return studies.map((study) => ({
         study,
         patients: slice.filter((p) => p.assigned_study === study),
       }));
     };
-    return { waiting: byStatus('in_attesa'), inVisit: byStatus('in_visita') };
+    return {
+      booked: byStatus('prenotato'),
+      waiting: byStatus('in_attesa'),
+      inVisit: byStatus('in_visita'),
+    };
   }
 
   private groupByStudy(list: Doctor[]) {
-    const studies = Array.from(new Set(list.map((d) => d.study)));
-    return studies.map((study) => ({
+    // Estrai i valori unici di study
+    const uniqueStudies = Array.from(new Set(list.map((d) => d.study)));
+
+    // Ordina: prima i numeri, poi le stringhe
+    uniqueStudies.sort((a, b) => {
+      const aIsNum = typeof a === 'number';
+      const bIsNum = typeof b === 'number';
+
+      if (aIsNum && bIsNum) {
+        // entrambi numeri
+        return (a as number) - (b as number);
+      } else if (aIsNum) {
+        // a numero, b stringa -> a prima
+        return -1;
+      } else if (bIsNum) {
+        // b numero, a stringa -> b prima
+        return 1;
+      } else {
+        // entrambi stringhe -> ordine alfabetico
+        return String(a).localeCompare(String(b));
+      }
+    });
+
+    // Mappa ai gruppi ordinati
+    return uniqueStudies.map((study) => ({
       study,
       doctors: list.filter((d) => d.study === study),
     }));
   }
 
+  isNumber(value: any): boolean {
+    // Per fare in modo di mostrare Studio se numero o solo la stringa se stringa
+    // prova a convertirlo in numero e verifica che non sia NaN
+    return !isNaN(Number(value));
+  }
+
+  // Convertire i nomi dei pazienti caricati in CamelCase
+  private toCamelCase(name: string): string {
+    return name
+      .toLowerCase()
+      .split(/\s+/)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+  }
+
   // ========== trackBy ==========
 
-  trackByStudy(index: number, group: { study: number }) {
+  trackByStudy(index: number, group: { study: number | string }) {
     return group.study;
   }
 
@@ -220,6 +415,7 @@ export class SegreteriaPage implements OnInit {
   }
 
   async openEditPatientModal(patient: any) {
+    console.log('openModale: ' + JSON.stringify(patient));
     const modal = await this.modalController.create({
       component: EditPatientModalComponent,
       cssClass: 'custom-modal',
@@ -228,6 +424,11 @@ export class SegreteriaPage implements OnInit {
       },
     });
     return await modal.present();
+  }
+
+  // Menù
+  openAppMenu() {
+    this.menuCtrl.open('segreteria-menu');
   }
 
   // Print del ticket

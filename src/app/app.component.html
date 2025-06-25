@@ -1,3 +1,35 @@
 <ion-app>
-  <ion-router-outlet></ion-router-outlet>
+  <ion-menu side="start" menuId="segreteria-menu" contentId="main-content">
+    <ion-content>
+      <ion-list lines="none">
+        <ion-item button (click)="openAddPatientModal()">
+          <ion-icon
+            slot="start"
+            name="person-add-outline"
+            class="icon"
+          ></ion-icon>
+          <ion-label class="section-title">Nuovo Paziente</ion-label>
+        </ion-item>
+        <ion-item button (click)="openAddDoctorModal()">
+          <ion-icon
+            slot="start"
+            name="person-add-outline"
+            class="icon"
+          ></ion-icon>
+          <ion-label class="section-title">Nuovo Medico</ion-label>
+        </ion-item>
+        <ion-menu-toggle auto-hide="false">
+          <ion-item routerLink="/ticket-config" detail="false">
+            <ion-icon
+              slot="start"
+              name="document-text-outline"
+              class="icon"
+            ></ion-icon>
+            <ion-label class="section-title">Modifica Ticket</ion-label>
+          </ion-item>
+        </ion-menu-toggle>
+      </ion-list>
+    </ion-content>
+  </ion-menu>
+  <ion-router-outlet id="main-content"></ion-router-outlet>
 </ion-app>

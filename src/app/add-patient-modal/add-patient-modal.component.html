@@ -11,16 +11,38 @@
   <form (ngSubmit)="addPatient()">
     <ion-item>
       <ion-label position="stacked">Nome</ion-label>
-      <ion-input type="text" [(ngModel)]="fullName" name="fullName" required></ion-input>
+      <ion-input
+        type="text"
+        [(ngModel)]="fullName"
+        name="fullName"
+        required
+      ></ion-input>
     </ion-item>
     <ion-item>
       <ion-label position="stacked">Studio</ion-label>
-      <ion-input type="text" [(ngModel)]="assignedStudy" name="assignedStudy" required></ion-input>
+      <ion-select
+        [(ngModel)]="assignedStudy"
+        name="assignedStudy"
+        placeholder="Seleziona studio"
+        required
+      >
+        <ion-select-option *ngFor="let s of studies" [value]="s">
+          {{ s === "Palestra" ? s : "Studio " + s }}
+        </ion-select-option>
+      </ion-select>
     </ion-item>
     <ion-item>
       <ion-label position="stacked">Orario Appuntamento</ion-label>
-      <ion-select name="orarioAppuntamento" [(ngModel)]="orarioAppuntamento"(ionChange)="aggiornaDataCompleta()" interface="popover">
-        <ion-select-option *ngFor="let orario of orariDisponibili" [value]="orario">
+      <ion-select
+        name="orarioAppuntamento"
+        [(ngModel)]="orarioAppuntamento"
+        (ionChange)="aggiornaDataCompleta()"
+        interface="popover"
+      >
+        <ion-select-option
+          *ngFor="let orario of orariDisponibili"
+          [value]="orario"
+        >
           {{ orario }}
         </ion-select-option>
       </ion-select>
@@ -28,4 +50,3 @@
     <ion-button expand="full" type="submit">Aggiungi</ion-button>
   </form>
 </div>
-

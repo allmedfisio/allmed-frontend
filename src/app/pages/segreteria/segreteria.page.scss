@@ -1,10 +1,68 @@
-/* segreteria.page.scss */
-ion-avatar img {
-  object-fit: cover;
+ion-chip {
+  font-size: 1.1rem;
+  font-weight: 500;
 }
 
-:root {
-  --button-border-radius: 8px;
-  --button-padding-vertical: 0.4rem;
-  --button-padding-horizontal: 0.8rem;
+ion-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.section-title {
+  color: var(--ion-color-primary);
+}
+
+.icon {
+  color: var(--ion-color-secondary);
+}
+
+.segreteria-content {
+  --background: #f5f7fa;
+}
+
+.studio {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--ion-color-secondary);
+}
+
+.card-soft {
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.name {
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--ion-color-primary);
+}
+
+.study {
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--ion-color-secondary);
+}
+
+.app {
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--ion-color-primary);
+}
+
+.divider-col {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.vertical-divider {
+  width: 0.2rem;
+  height: 100%;
+  background-color: rgba(10, 61, 102, 0.15);
+  border-radius: 1px;
+}
+
+.doc-button-col {
+  align-content: center;
+  text-align: center;
 }

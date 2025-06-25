@@ -18,10 +18,11 @@ export class EditPatientModalComponent implements OnInit {
 
   // campi legati a ngModel
   fullName!: string;
-  assignedStudy!: number;
+  assignedStudy!: number | string;
   appointmentTime!: string;
   orariDisponibili: string[] = [];
   orarioAppuntamento: string = '';
+  studi: Array<number | string> = [1, 2, 3, 4, 5, 6, 'Palestra'];
 
   constructor(
     private modalCtrl: ModalController,
@@ -34,6 +35,14 @@ export class EditPatientModalComponent implements OnInit {
     this.fullName = this.patientData.full_name;
     this.assignedStudy = this.patientData.assigned_study;
     this.appointmentTime = this.patientData.appointment_time;
+
+    // **estrai HH:mm dalla stringa ISO**
+    const dt = new Date(this.appointmentTime);
+    const hh = this.pad(dt.getHours());
+    const mm = this.pad(dt.getMinutes());
+    this.orarioAppuntamento = `${hh}:${mm}`;
+
+    console.log('orario app: ' + this.orarioAppuntamento);
 
     // Genera gli orari disponibili
     this.generaOrariDisponibili();
@@ -90,8 +99,8 @@ export class EditPatientModalComponent implements OnInit {
   }
 
   generaOrariDisponibili() {
-    const inizio = 14; // ore 8
-    const fine = 19.15; // ore 20
+    const inizio = 14; // ore 4
+    const fine = 20; // ore 20
     const intervalloMinuti = 15;
 
     for (let ora = inizio; ora <= fine; ora++) {
