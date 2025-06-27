@@ -1,67 +1,46 @@
-<ion-header>
-  <ion-toolbar>
+<ion-header class="modal-header">
+  <ion-toolbar color="primary" class="modal-header">
     <ion-title>Modifica: {{ patientData.full_name }}</ion-title>
     <ion-buttons slot="end">
       <ion-button (click)="cancel()">
-        <ion-icon name="close-outline"></ion-icon>
+        <ion-icon name="close-circle-outline"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<div>
-  <ion-list lines="full">
-    <ion-item>
-      <ion-label position="stacked">Nome</ion-label>
-      <ion-input [(ngModel)]="fullName"></ion-input>
-    </ion-item>
-    <ion-item>
-      <ion-label position="stacked">Studio</ion-label>
-      <ion-select [(ngModel)]="assignedStudy" placeholder="Seleziona studio">
-        <ion-select-option *ngFor="let s of studi" [value]="s">
-          {{ s === "Palestra" ? s : "Studio " + s }}
-        </ion-select-option>
-      </ion-select>
-    </ion-item>
-    <ion-item>
-      <ion-label position="stacked">Orario Appuntamento</ion-label>
-      <ion-select
-        name="orarioAppuntamento"
-        [(ngModel)]="orarioAppuntamento"
-        (ionChange)="aggiornaDataCompleta()"
-        interface="popover"
-      >
-        <ion-select-option
-          *ngFor="let orario of orariDisponibili"
-          [value]="orario"
-        >
-          {{ orario }}
-        </ion-select-option>
-      </ion-select>
-    </ion-item>
-  </ion-list>
-  <ion-button expand="full" (click)="save()">Salva</ion-button>
-  <ion-button expand="full" color="medium" (click)="cancel()"
-    >Annulla</ion-button
+<ion-item>
+  <ion-label position="stacked">Nome</ion-label>
+  <ion-input [(ngModel)]="fullName"></ion-input>
+</ion-item>
+<ion-item>
+  <ion-label position="stacked">Studio</ion-label>
+  <ion-select [(ngModel)]="assignedStudy" placeholder="Seleziona studio">
+    <ion-select-option *ngFor="let s of studi" [value]="s">
+      {{ s === "Palestra" ? s : "Studio " + s }}
+    </ion-select-option>
+  </ion-select>
+</ion-item>
+<ion-item>
+  <ion-label position="stacked">Orario Appuntamento</ion-label>
+  <ion-select
+    name="orarioAppuntamento"
+    [(ngModel)]="orarioAppuntamento"
+    (ionChange)="aggiornaDataCompleta()"
+    interface="popover"
   >
-</div>
-
-<!--
-<div>
-  <form [formGroup]="form" (ngSubmit)="editPatient()">
-    <ion-item>
-      <ion-label class="modal-label" position="floating">Nome e Cognome</ion-label>
-      <ion-input formControlName="fullName"></ion-input>
-    </ion-item>
-    <ion-item>
-      <ion-label class="modal-label" position="floating">Studio</ion-label>
-      <ion-input formControlName="assignedStudy"></ion-input>
-    </ion-item>
-    <ion-footer class="ion-padding" style="box-shadow: none;">
-      <ion-button class="edit-button" expand="block" type="submit" [disabled]="form.invalid">
-        Modifica
-      </ion-button>
-    </ion-footer>
-  </form>
-</div>
--->
+    <ion-select-option *ngFor="let orario of orariDisponibili" [value]="orario">
+      {{ orario }}
+    </ion-select-option>
+  </ion-select>
+</ion-item>
+<ion-button expand="full" class="modal-button" (click)="save()"
+  >Salva</ion-button
+>
+<ion-button
+  expand="full"
+  class="modal-button"
+  color="secondary"
+  (click)="cancel()"
+  >Annulla</ion-button
+>

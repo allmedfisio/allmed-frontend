@@ -1,9 +1,8 @@
-/* add-patient-modal.component.scss / edit-patient-modal.component.scss */
-ion-header {
-  --background: var(--ion-color-primary);
-  color: white;
+.modal-header {
+  height: auto !important;
+  min-height: 55px !important;
 }
 
-ion-button {
-  margin-top: 1rem;
+.modal-button {
+  margin: 0;
 }
