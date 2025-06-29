@@ -13,6 +13,7 @@ export class AddPatientModalComponent implements OnInit {
   fullName: string = '';
   assignedStudy!: number | string;
   appointmentTime: string = '';
+  patientStatus: 'in_attesa' | 'prenotato' = 'in_attesa';
   orariDisponibili: string[] = [];
   orarioAppuntamento: string = '';
   studies: Array<number | string> = [1, 2, 3, 4, 5, 6, 'Palestra'];
@@ -31,9 +32,20 @@ export class AddPatientModalComponent implements OnInit {
   }
 
   async addPatient() {
-    if (!this.fullName || !this.assignedStudy || !this.appointmentTime) return;
+    if (
+      !this.fullName ||
+      !this.assignedStudy ||
+      !this.appointmentTime ||
+      !this.patientStatus
+    )
+      return;
     this.patientService
-      .addPatient(this.fullName, this.assignedStudy, this.appointmentTime)
+      .addPatient(
+        this.fullName,
+        this.assignedStudy,
+        this.appointmentTime,
+        this.patientStatus
+      )
       .pipe()
       .subscribe({
         next: async (newPatient) => {

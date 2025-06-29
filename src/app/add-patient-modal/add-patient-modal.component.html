@@ -49,6 +49,20 @@
       </ion-select-option>
     </ion-select>
   </ion-item>
+  <ion-segment
+    [(ngModel)]="patientStatus"
+    name="status"
+    class="segment"
+    color="secondary"
+  >
+    <ion-segment-button value="in_attesa">
+      <ion-label>In Attesa</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="prenotato">
+      <ion-label>Prenotato</ion-label>
+    </ion-segment-button>
+  </ion-segment>
+
   <ion-button
     expand="full"
     class="modal-button"

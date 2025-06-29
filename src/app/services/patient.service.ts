@@ -80,12 +80,15 @@ Aggiunge un nuovo paziente
   addPatient(
     full_name: string,
     assigned_study: number | string,
-    appointment_time: string
+    appointment_time: string,
+    status: string
   ): Observable<Patient> {
+    console.log('status in addPatient:' + status);
     return this.http.post<Patient>(`${environment.apiUrl}/patients`, {
       full_name,
       assigned_study,
       appointment_time,
+      status,
     });
   }
 
