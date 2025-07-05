@@ -7,12 +7,20 @@
     <ion-card-content>
       <ion-item fill="outline">
         <ion-label position="floating">Username</ion-label>
-        <ion-input [(ngModel)]="username" type="text"></ion-input>
+        <ion-input
+          [(ngModel)]="username"
+          type="text"
+          (keydown.enter)="doLogin()"
+        ></ion-input>
       </ion-item>
 
       <ion-item fill="outline">
         <ion-label position="floating">Password</ion-label>
-        <ion-input [(ngModel)]="password" type="password"></ion-input>
+        <ion-input
+          [(ngModel)]="password"
+          type="password"
+          (keydown.enter)="doLogin()"
+        ></ion-input>
       </ion-item>
 
       <ion-button expand="block" class="ion-margin-top" (click)="doLogin()">
