@@ -16,7 +16,14 @@ import { AddPatientModalComponent } from 'src/app/add-patient-modal/add-patient-
 import { AddDoctorModalComponent } from 'src/app/add-doctor-modal/add-doctor-modal.component';
 import { EditPatientModalComponent } from 'src/app/edit-patient-modal/edit-patient-modal.component';
 import { Patient, PatientService } from 'src/app/services/patient.service';
-import { Observable, take, firstValueFrom, Subscription } from 'rxjs';
+import {
+  Observable,
+  take,
+  firstValueFrom,
+  Subscription,
+  BehaviorSubject,
+  combineLatest,
+} from 'rxjs';
 import { map, tap } from 'rxjs/operators';
 import { Doctor, DoctorService } from 'src/app/services/doctor.service';
 import { AuthService, UserProfile } from 'src/app/services/auth.service';
@@ -25,6 +32,7 @@ import {
   TicketTemplate,
 } from 'src/app/services/template.service';
 import * as XLSX from 'xlsx';
+import { DateFilterModalComponent } from 'src/app/date-filter-modal/date-filter-modal.component';
 
 interface PatientGroup {
   study: number | string;
@@ -34,6 +42,11 @@ interface PatientGroup {
 interface DoctorGroup {
   study: number | string;
   doctors: Doctor[];
+}
+
+interface DateGroup {
+  date: string; // 'YYYY-MM-DD'
+  groups: PatientGroup[]; // i gruppi per studio in quel giorno
 }
 
 @Component({
@@ -49,8 +62,15 @@ export class SegreteriaPage implements OnInit {
     booked: { study: number | string; patients: Patient[] }[];
     waiting: { study: number | string; patients: Patient[] }[];
     inVisit: { study: number | string; patients: Patient[] }[];
+    bookedByDate: DateGroup[];
   }>;
   doctorsByStudy$!: Observable<DoctorGroup[]>;
+
+  // Filtro data per i prenotati
+  filterDatePrenotati: string = new Date().toISOString().split('T')[0];
+  private filterDatePrenotati$ = new BehaviorSubject<string>(
+    this.filterDatePrenotati
+  );
   segment: 'in_attesa' | 'prenotato' = 'in_attesa';
 
   // memorizzo qui il template, così non userò mai più getTemplate() a runtime
@@ -87,10 +107,46 @@ export class SegreteriaPage implements OnInit {
     // Sottoscrivi (via async pipe) al profilo
     this.userProfile$ = this.authService.profile$;
 
-    // Divide i pazienti in base allo status
+    /* Divide i pazienti in base allo status
     this.patientsByStatus$ = this.patientService.patients$.pipe(
       tap((list) => console.log('PatientBystatus', list)),
       map((list) => this.groupByStatus(list))
+    ); */
+
+    this.patientsByStatus$ = combineLatest([
+      this.patientService.patients$,
+      this.filterDatePrenotati$.asObservable(),
+    ]).pipe(
+      map(([list, filterDate]) => {
+        // 1) ottieni i tre gruppi base
+        const { waiting, inVisit, booked } = this.groupByStatus(
+          list,
+          filterDate
+        );
+
+        // 2) se non c’è filtro data, costruiamo bookedByDate
+        let bookedByDate: { date: string; groups: PatientGroup[] }[] = [];
+        if (!filterDate) {
+          // estrai le date uniche dai prenotati
+          const prenotatiAll = list.filter((p) => p.status === 'prenotato');
+          const dates = Array.from(
+            new Set(prenotatiAll.map((p) => p.appointment_time.split('T')[0]))
+          ).sort();
+          bookedByDate = dates.map((date) => {
+            // raggruppa per studio i prenotati di quel giorno
+            const slice = prenotatiAll.filter((p) =>
+              p.appointment_time.startsWith(date)
+            );
+            return {
+              date,
+              groups: this.groupByStatus(slice, date).booked,
+            };
+          });
+        }
+
+        // 3) ritorno l’oggetto con tutte e quattro le proprietà
+        return { waiting, inVisit, booked, bookedByDate };
+      })
     );
 
     // Carica i medici attivi solo una volta
@@ -289,14 +345,39 @@ export class SegreteriaPage implements OnInit {
 
   // ========== Helpers ==========
 
-  private groupByStatus(list: Patient[]): {
+  private groupByStatus(
+    list: Patient[],
+    filterDatePrenotati: string
+  ): {
     booked: PatientGroup[];
     waiting: PatientGroup[];
     inVisit: PatientGroup[];
   } {
+    // Data odierna
+    const todayStr = new Date().toISOString().split('T')[0];
+
     const byStatus = (status: Patient['status']) => {
       // Filtro per status
       let slice = list.filter((p) => p.status === status);
+
+      // applichiamo il filtro “oggi” su in_attesa
+      if (status === 'in_attesa') {
+        // solo quelli di oggi
+        slice = slice.filter((p) => p.appointment_time?.startsWith(todayStr));
+      }
+
+      // applichiamo il filtro data selezionata su prenotato
+      if (status === 'prenotato' && filterDatePrenotati) {
+        slice = slice.filter((p) => {
+          const appt = p.appointment_time;
+          if (!appt || !filterDatePrenotati) {
+            return true;
+          }
+          // estrai "YYYY-MM-DD" dal campo ISO completo
+          const apptDate = appt.split('T')[0];
+          return apptDate === filterDatePrenotati.split('T')[0];
+        });
+      }
 
       // Ordino per appointment_time crescente
       slice = slice.sort((a, b) =>
@@ -367,6 +448,33 @@ export class SegreteriaPage implements OnInit {
     }));
   }
 
+  // helper che raggruppa SOLO prenotati per studio e opzionalmente data
+  private groupByStudyStatus(
+    list: Patient[],
+    dateFilter?: string
+  ): PatientGroup[] {
+    let slice = dateFilter
+      ? list.filter((p) => p.appointment_time.startsWith(dateFilter))
+      : [...list];
+    // ordino per appointment_time
+    slice.sort((a, b) => a.appointment_time.localeCompare(b.appointment_time));
+    // raggruppo per studio (riusa la logica del tuo groupByStatus)
+    const studies = Array.from(
+      new Set(slice.map((p) => p.assigned_study))
+    ).sort((a, b) => {
+      const na = typeof a === 'number',
+        nb = typeof b === 'number';
+      if (na && nb) return (a as number) - (b as number);
+      if (na) return -1;
+      if (nb) return 1;
+      return String(a).localeCompare(String(b));
+    });
+    return studies.map((study) => ({
+      study,
+      patients: slice.filter((p) => p.assigned_study === study),
+    }));
+  }
+
   isNumber(value: any): boolean {
     // Per fare in modo di mostrare Studio se numero o solo la stringa se stringa
     // prova a convertirlo in numero e verifica che non sia NaN
@@ -380,6 +488,11 @@ export class SegreteriaPage implements OnInit {
       .split(/\s+/)
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(' ');
+  }
+
+  resetFilterDate() {
+    this.filterDatePrenotati = '';
+    this.filterDatePrenotati$.next('');
   }
 
   // ========== trackBy ==========
@@ -426,6 +539,24 @@ export class SegreteriaPage implements OnInit {
     return await modal.present();
   }
 
+  async openDateFilter() {
+    const modal = await this.modalController.create({
+      component: DateFilterModalComponent,
+      componentProps: {
+        initialDate: this.filterDatePrenotati,
+        showTime: false,
+      },
+      cssClass: 'custom-modal',
+    });
+    await modal.present();
+    const { data } = await modal.onWillDismiss<{ date?: string }>();
+    if (data?.date !== undefined) {
+      // se l'utente ha premuto Conferma (anche con date = '')
+      this.filterDatePrenotati = data.date;
+      this.filterDatePrenotati$.next(data.date);
+    }
+  }
+
   // Menù
   openAppMenu() {
     this.menuCtrl.open('segreteria-menu');
@@ -467,7 +598,7 @@ export class SegreteriaPage implements OnInit {
       margin: 0 auto .5rem;
     }
     .queue {
-      font-size: 1.5rem;
+      font-size: 1.8rem;
       margin:1rem 0;
       color: #1f2b54;
     }
@@ -492,9 +623,9 @@ export class SegreteriaPage implements OnInit {
       ${tpl.headerText}
     </h2>
     <p class="queue">Numero di coda</p>
-      <div class="queue">#${num}</div>
+      <div class="queue">${num}</div>
       <p class="queue">Studio assegnato</p>
-      <div class="queue">#${studio}</div>
+      <div class="queue">${studio}</div>
     <div class="promo">
       <div class="promo-content">
         ${tpl.promoHtml}

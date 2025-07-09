@@ -8,7 +8,17 @@ ion-avatar {
   height: 2.5rem;
 }
 
+.prenotati-header {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
 .section-title {
+  color: var(--ion-color-primary);
+}
+
+.date-title {
   color: var(--ion-color-primary);
 }
 
@@ -40,7 +50,7 @@ ion-avatar {
 .study {
   font-size: 1rem;
   font-weight: 400;
-  color: var(--ion-color-secondary);
+  color: var(--ion-color-primary);
 }
 
 .app {

@@ -32,8 +32,16 @@
       </ion-select-option>
     </ion-select>
   </ion-item>
-  <ion-item>
-    <ion-label position="stacked">Orario Appuntamento</ion-label>
+  <ion-item button (click)="openDateTimePicker()">
+    <ion-label position="stacked">Data & Orario Appuntamento</ion-label>
+    <ion-text class="placeholder">
+      {{
+        appointmentTime
+          ? (appointmentTime | date : "dd/MM/yyyy HH:mm")
+          : "Seleziona appuntamento"
+      }}
+    </ion-text>
+    <!--
     <ion-select
       name="orarioAppuntamento"
       [(ngModel)]="orarioAppuntamento"
@@ -48,6 +56,7 @@
         {{ orario }}
       </ion-select-option>
     </ion-select>
+    -->
   </ion-item>
   <ion-segment
     [(ngModel)]="patientStatus"
@@ -67,7 +76,7 @@
     expand="full"
     class="modal-button"
     type="submit"
-    [disabled]="!fullName || !orarioAppuntamento || !assignedStudy"
+    [disabled]="!fullName || !appointmentTime || !assignedStudy"
     >Aggiungi</ion-button
   >
 </form>

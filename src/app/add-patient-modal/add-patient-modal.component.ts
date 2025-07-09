@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ModalController } from '@ionic/angular';
 import { PatientService } from '../services/patient.service';
 import { firstValueFrom } from 'rxjs';
+import { DateFilterModalComponent } from '../date-filter-modal/date-filter-modal.component';
 
 @Component({
   selector: 'app-add-patient-modal',
@@ -12,10 +13,9 @@ import { firstValueFrom } from 'rxjs';
 export class AddPatientModalComponent implements OnInit {
   fullName: string = '';
   assignedStudy!: number | string;
-  appointmentTime: string = '';
+  appointmentTime!: string;
   patientStatus: 'in_attesa' | 'prenotato' = 'in_attesa';
   orariDisponibili: string[] = [];
-  orarioAppuntamento: string = '';
   studies: Array<number | string> = [1, 2, 3, 4, 5, 6, 'Palestra'];
 
   constructor(
@@ -29,6 +29,27 @@ export class AddPatientModalComponent implements OnInit {
 
   dismiss() {
     this.modalController.dismiss();
+  }
+
+  async openDateTimePicker() {
+    const initial = this.appointmentTime
+      ? // se esiste già un valore completo (es. "2025-07-02T14:45:00"), lo riuso
+        this.appointmentTime
+      : // altrimenti uso adesso come default completo
+        this.toLocalISO(new Date());
+    const modal = await this.modalController.create({
+      component: DateFilterModalComponent,
+      componentProps: {
+        initialDate: initial,
+        showTime: true, // ← data + ora
+      },
+      cssClass: 'custom-modal',
+    });
+    await modal.present();
+    const { data } = await modal.onWillDismiss<{ date?: string }>();
+    if (data?.date !== undefined) {
+      this.appointmentTime = data.date; // ISO full date-time
+    }
   }
 
   async addPatient() {
@@ -68,6 +89,16 @@ export class AddPatientModalComponent implements OnInit {
     }
   }
 
+  /** Restituisce una stringa "YYYY-MM-DDTHH:mm:ss" con orario locale */
+  toLocalISO(d: Date): string {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return (
+      [d.getFullYear(), pad(d.getMonth() + 1), pad(d.getDate())].join('-') +
+      'T' +
+      [pad(d.getHours()), pad(d.getMinutes()), pad(d.getSeconds())].join(':')
+    );
+  }
+  /*
   aggiornaDataCompleta() {
     console.log('orario app: ', this.orarioAppuntamento);
     const oggi = new Date();
@@ -92,7 +123,7 @@ export class AddPatientModalComponent implements OnInit {
     this.appointmentTime = `${yyyy}-${mm}-${dd}T${hh}:${min}:00`;
     console.log('app time: ', this.appointmentTime);
   }
-
+*/
   pad(numero: number): string {
     return numero < 10 ? '0' + numero : numero.toString();
   }
