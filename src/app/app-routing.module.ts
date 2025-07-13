@@ -56,6 +56,15 @@ const routes: Routes = [
         (m) => m.TicketConfigPageModule
       ),
   },
+  {
+    path: 'agenda',
+    loadChildren: () =>
+      import('./pages/agenda/agenda.module').then((m) => m.AgendaPageModule),
+    canActivate: [AuthGuardService],
+    data: {
+      roles: ['admin', 'segreteria'],
+    },
+  },
 ];
 
 @NgModule({

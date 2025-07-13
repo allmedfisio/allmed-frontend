@@ -1,0 +1,25 @@
+.calendar-content {
+  --background: #f5f7fa;
+}
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+.day-header {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  color: var(--ion-color-primary);
+}
+.event {
+  padding: 0.25rem;
+  margin-bottom: 0.25rem;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.time {
+  font-weight: bold;
+}
