@@ -26,57 +26,59 @@
 <ion-content class="sala-attesa-content">
   <ion-grid fixed>
     <ion-row>
-      <ion-card class="card-hidden">
+      <ion-col size="12" size-md="12">
         <ion-grid fixed>
-          <ion-row class="data-row">
-            <ion-col size="12" size-md="4" class="data-col">
-              <h2 class="section-title">Medici</h2>
-            </ion-col>
-            <ion-col size="12" size-md="4" class="data-col">
-              <h2 class="section-title">In visita</h2>
-            </ion-col>
-            <ion-col size="12" size-md="4" class="data-col">
-              <h2 class="section-title">Prossimo</h2>
-            </ion-col>
+          <ion-row>
+            <ion-card class="card-hidden">
+              <ion-grid fixed>
+                <ion-row class="data-row">
+                  <ion-col size="12" size-md="6" class="data-col">
+                    <h2 class="section-title">Medici</h2>
+                  </ion-col>
+                  <ion-col size="12" size-md="6" class="data-col">
+                    <h2 class="section-title">Numero</h2>
+                  </ion-col>
+                </ion-row>
+              </ion-grid>
+            </ion-card>
+          </ion-row>
+
+          <ion-row *ngFor="let row of rows$ | async; trackBy: trackByRow">
+            <ion-card
+              class="card-soft"
+              [@highlight]="highlightedStudy === row.study ? 'on' : 'off'"
+            >
+              <ion-card-content>
+                <ion-grid fixed>
+                  <ion-row class="data-row">
+                    <ion-col size="12" size-md="6" class="data-col">
+                      <ion-label>
+                        <ng-container
+                          *ngIf="isNumber(row.study); else plainLabel"
+                        >
+                          <h2 class="doctor-name">{{ row.doctorName }}</h2>
+                          <h3 class="doctor-study">Studio {{ row.study }}</h3>
+                        </ng-container>
+                        <ng-template #plainLabel>
+                          <h2 class="doctor-name">{{ row.doctorName }}</h2>
+                          <h3 class="doctor-study">{{ row.study }}</h3>
+                        </ng-template>
+                      </ion-label>
+                    </ion-col>
+                    <ion-col size="12" size-md="6" class="data-col">
+                      <ion-label>
+                        <h2 class="big-number">
+                          {{ row.patientNumber || '-' }}
+                        </h2>
+                      </ion-label>
+                    </ion-col>
+                  </ion-row>
+                </ion-grid>
+              </ion-card-content>
+            </ion-card>
           </ion-row>
         </ion-grid>
-      </ion-card>
-    </ion-row>
-
-    <ion-row *ngFor="let row of rows$ | async; trackBy: trackByRow">
-      <ion-card
-        class="card-soft"
-        [@highlight]="highlightedStudy === row.study ? 'on' : 'off'"
-      >
-        <ion-card-content>
-          <ion-grid fixed>
-            <ion-row class="data-row">
-              <ion-col size="12" size-md="4" class="data-col">
-                <ion-label>
-                  <ng-container *ngIf="isNumber(row.study); else plainLabel">
-                    <h2 class="doctor-name">{{ row.doctorName }}</h2>
-                    <h3 class="doctor-study">Studio {{ row.study }}</h3>
-                  </ng-container>
-                  <ng-template #plainLabel>
-                    <h2 class="doctor-name">{{ row.doctorName }}</h2>
-                    <h3 class="doctor-study">{{ row.study }}</h3>
-                  </ng-template>
-                </ion-label>
-              </ion-col>
-              <ion-col size="12" size-md="4" class="data-col">
-                <ion-label>
-                  <h2 class="big-number">{{ row.patientNumber || '-' }}</h2>
-                </ion-label>
-              </ion-col>
-              <ion-col size="12" size-md="4" class="data-col">
-                <ion-label>
-                  <h2 class="big-number">{{ row.nextPatientNumber || '-' }}</h2>
-                </ion-label>
-              </ion-col>
-            </ion-row>
-          </ion-grid>
-        </ion-card-content>
-      </ion-card>
+      </ion-col>
     </ion-row>
   </ion-grid>
 </ion-content>

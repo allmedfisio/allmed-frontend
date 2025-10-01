@@ -15,6 +15,7 @@ export class AddDoctorModalComponent implements OnInit {
   studies: Array<number | string> = [1, 2, 3, 4, 5, 6, 'Palestra'];
   doctors: string[] = [
     'Dott.ssa Boccone Isabella',
+    'Dott.ssa Boglione Arianna',
     'Dott.ssa Cagliero Daniela',
     'Dott. Canfora Amedeo',
     'Dott. Chiacchio Ferdinando',
@@ -24,6 +25,7 @@ export class AddDoctorModalComponent implements OnInit {
     'Dott. Martorana Stefano',
     'Dott.ssa Panero Marta',
     'Dott.ssa Paoletti Chiara',
+    'Dott.ssa Perlo Cristina',
     'Dott. Piazza Giovanni',
     'Dott.ssa Pittatore Giulia',
     'D.O. Riorda Guglielmo',
