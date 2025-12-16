@@ -14,6 +14,7 @@ export class AddDoctorModalComponent implements OnInit {
   // Se vuoi includere “Palestra” o altri
   studies: Array<number | string> = [1, 2, 3, 4, 5, 6, 'Palestra'];
   doctors: string[] = [
+    'Dott. Benedetto Simone',
     'Dott.ssa Boccone Isabella',
     'Dott.ssa Boglione Arianna',
     'Dott.ssa Cagliero Daniela',
