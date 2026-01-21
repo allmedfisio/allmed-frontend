@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { AlertController } from '@ionic/angular';
 import { Patient, PatientService } from '../../services/patient.service';
-import { firstValueFrom, Subscription, Observable } from 'rxjs';
+import { firstValueFrom, Subscription, Observable, combineLatest } from 'rxjs';
 import { DoctorService } from 'src/app/services/doctor.service';
 import { AuthService, UserProfile } from 'src/app/services/auth.service';
 
@@ -55,9 +55,21 @@ export class MedicoPage implements OnInit, OnDestroy {
     // Join alla stanza corretta
     this.patientService.socket.emit('joinStudio', String(this.myStudyId));
 
-    // Sottoscrizione per filtrare current/next per questo studio
-    this.sub = this.patientService.patients$.subscribe((list) => {
-      const studyList = list.filter((p) => p.assigned_study === this.myStudyId);
+    // Sottoscrizione per filtrare current/next per i medici di questo studio
+    // Combiniamo pazienti e medici per filtrare per assigned_doctor
+    this.sub = combineLatest([
+      this.patientService.patients$,
+      this.doctorService.doctors$
+    ]).subscribe(([patients, doctors]) => {
+      // Trova tutti i medici di questo studio
+      const doctorsInStudy = doctors.filter((d) => d.study === this.myStudyId);
+      const doctorIds = doctorsInStudy.map((d) => d.id);
+      
+      // Filtra pazienti assegnati ai medici di questo studio
+      const studyList = patients.filter((p) => 
+        p.assigned_doctor && doctorIds.includes(p.assigned_doctor)
+      );
+      
       this.currentPatient =
         studyList.find((p) => p.status === 'in_visita') || null;
       const waiting = studyList
@@ -105,14 +117,12 @@ export class MedicoPage implements OnInit, OnDestroy {
       // 2️⃣ Cambia lo stato del paziente (attesa ➜ in_visita)
       await firstValueFrom(this.patientService.callPatient(patientToCall.id));
 
-      // 3️⃣ Recupera il record del medico relativo a questo studio
-      const doctors = await firstValueFrom(this.doctorService.doctors$);
-      const myDoctor = doctors.find((d) => d.study === this.myStudyId);
-      if (myDoctor) {
-        // 4️⃣ Aggiorna last_patient con il nome “congelato”
+      // 3️⃣ Usa assigned_doctor direttamente dal paziente
+      if (patientToCall.assigned_doctor) {
+        // 4️⃣ Aggiorna last_patient con il nome "congelato"
         await firstValueFrom(
           this.doctorService.updateLastPatient(
-            myDoctor.id,
+            patientToCall.assigned_doctor,
             patientToCall.full_name
           )
         );

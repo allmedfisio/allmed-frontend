@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { environment } from 'src/environments/environment';
 import { Patient, PatientService } from '../services/patient.service';
+import { DoctorService, Doctor } from '../services/doctor.service';
 import { take } from 'rxjs';
 
 @Component({
@@ -18,23 +19,29 @@ export class EditPatientModalComponent implements OnInit {
 
   // campi legati a ngModel
   fullName!: string;
-  assignedStudy!: number | string;
+  assignedDoctor!: string;
   appointmentTime!: string;
   orariDisponibili: string[] = [];
   orarioAppuntamento: string = '';
-  studi: Array<number | string> = [1, 2, 3, 4, 5, 6, 'Palestra'];
+  doctors: Doctor[] = [];
 
   constructor(
     private modalCtrl: ModalController,
     private patientService: PatientService,
+    private doctorService: DoctorService,
     private toastCtrl: ToastController
   ) {}
 
   ngOnInit() {
     // inizializza i form fields con i dati correnti
     this.fullName = this.patientData.full_name;
-    this.assignedStudy = this.patientData.assigned_study;
+    this.assignedDoctor = this.patientData.assigned_doctor || '';
     this.appointmentTime = this.patientData.appointment_time;
+    
+    // Carica la lista dei medici
+    this.doctorService.doctors$.subscribe((doctors) => {
+      this.doctors = doctors;
+    });
 
     // **estrai HH:mm dalla stringa ISO**
     const dt = new Date(this.appointmentTime);
@@ -53,8 +60,8 @@ export class EditPatientModalComponent implements OnInit {
     if (this.fullName !== this.patientData.full_name) {
       updates.full_name = this.fullName;
     }
-    if (this.assignedStudy !== this.patientData.assigned_study) {
-      updates.assigned_study = this.assignedStudy;
+    if (this.assignedDoctor !== this.patientData.assigned_doctor) {
+      updates.assigned_doctor = this.assignedDoctor;
     }
     if (this.appointmentTime !== this.patientData.appointment_time) {
       updates.appointment_time = this.appointmentTime;

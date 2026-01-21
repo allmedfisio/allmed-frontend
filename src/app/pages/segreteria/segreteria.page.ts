@@ -69,7 +69,7 @@ export class SegreteriaPage implements OnInit {
   // Filtro data per i prenotati
   filterDatePrenotati: string = new Date().toISOString().split('T')[0];
   private filterDatePrenotati$ = new BehaviorSubject<string>(
-    this.filterDatePrenotati
+    this.filterDatePrenotati,
   );
   segment: 'in_attesa' | 'prenotato' = 'in_attesa';
 
@@ -100,7 +100,7 @@ export class SegreteriaPage implements OnInit {
     private doctorService: DoctorService,
     private authService: AuthService,
     private tplService: TemplateService,
-    private injector: Injector
+    private injector: Injector,
   ) {}
 
   ngOnInit() {
@@ -115,13 +115,15 @@ export class SegreteriaPage implements OnInit {
 
     this.patientsByStatus$ = combineLatest([
       this.patientService.patients$,
+      this.doctorService.doctors$,
       this.filterDatePrenotati$.asObservable(),
     ]).pipe(
-      map(([list, filterDate]) => {
+      map(([list, doctors, filterDate]) => {
         // 1) ottieni i tre gruppi base
         const { waiting, inVisit, booked } = this.groupByStatus(
           list,
-          filterDate
+          doctors,
+          filterDate,
         );
 
         // 2) se non c’è filtro data, costruiamo bookedByDate
@@ -130,29 +132,28 @@ export class SegreteriaPage implements OnInit {
           // estrai le date uniche dai prenotati
           const prenotatiAll = list.filter((p) => p.status === 'prenotato');
           const dates = Array.from(
-            new Set(prenotatiAll.map((p) => p.appointment_time.split('T')[0]))
+            new Set(prenotatiAll.map((p) => p.appointment_time.split('T')[0])),
           ).sort();
           bookedByDate = dates.map((date) => {
             // raggruppa per studio i prenotati di quel giorno
             const slice = prenotatiAll.filter((p) =>
-              p.appointment_time.startsWith(date)
+              p.appointment_time.startsWith(date),
             );
             return {
               date,
-              groups: this.groupByStatus(slice, date).booked,
+              groups: this.groupByStatus(slice, doctors, date).booked,
             };
           });
         }
 
         // 3) ritorno l’oggetto con tutte e quattro le proprietà
         return { waiting, inVisit, booked, bookedByDate };
-      })
+      }),
     );
 
     // Carica i medici attivi solo una volta
     this.doctorsByStudy$ = this.doctorService.doctors$.pipe(
-      tap((list) => console.log('SegreteriaPage: nuovi medici ricevuti', list)),
-      map((list) => this.groupByStudy(list))
+      map((list) => this.groupByStudy(list)),
     );
 
     // Precarico il template del ticket
@@ -174,34 +175,32 @@ export class SegreteriaPage implements OnInit {
   }
 
   async callPatient(patient: Patient): Promise<void> {
-    // Preleva lista dei gruppi di medici
-    const groups = await firstValueFrom(this.doctorsByStudy$);
-    // Cerca il gruppo giusto e il primo medico
-    const group = groups.find((g) => g.study === patient.assigned_study);
-    const doc = group?.doctors[0];
-
-    if (!doc) {
-      this.presentToast(
-        `Nessun medico per lo studio ${patient.assigned_study}`,
-        'danger'
-      );
+    // Usa direttamente assigned_doctor invece di cercare per studio
+    if (!patient.assigned_doctor) {
+      this.presentToast(`Paziente senza medico assegnato`, 'danger');
       return;
     }
 
     try {
-      // Esiste: chiamiamo il paziente
+      // Chiama il paziente
       await firstValueFrom(
-        this.patientService.callPatient(patient.id).pipe(take(1))
+        this.patientService.callPatient(patient.id).pipe(take(1)),
       );
       // Aggiorna il paziente in visita del medico
       await firstValueFrom(
         this.doctorService
-          .updateLastPatient(doc.id, patient.full_name)
-          .pipe(take(1))
+          .updateLastPatient(patient.assigned_doctor, patient.full_name)
+          .pipe(take(1)),
       );
+
+      // Recupera il nome del medico per il messaggio
+      const doctors = await firstValueFrom(this.doctorService.doctors$);
+      const doc = doctors.find((d) => d.id === patient.assigned_doctor);
+      const doctorName = doc?.name || 'medico';
+
       this.presentToast(
-        `Paziente ${patient.full_name} chiamato dallo studio ${patient.assigned_study}`,
-        'success'
+        `Paziente ${patient.full_name} chiamato dal dott. ${doctorName}`,
+        'success',
       );
     } catch (err: any) {
       this.presentToast(`Errore: ${err.message}`, 'danger');
@@ -210,9 +209,46 @@ export class SegreteriaPage implements OnInit {
 
   async patientArrived(patient: Patient): Promise<void> {
     try {
+      // Se assigned_doctor è un nome (non un ID), convertilo in ID del medico attivo
+      let doctorId = patient.assigned_doctor;
+      if (
+        patient.assigned_doctor &&
+        !this.isValidUUID(patient.assigned_doctor)
+      ) {
+        // assigned_doctor è un nome, cerca il medico attivo corrispondente
+        const activeDoctors = await firstValueFrom(this.doctorService.doctors$);
+
+        const activeDoctor = activeDoctors.find((doc) =>
+          this.isDoctorMatch(
+            this.normalizeDoctorName(patient.assigned_doctor),
+            this.normalizeDoctorName(doc.name),
+          ),
+        );
+
+        if (!activeDoctor) {
+          throw new Error(
+            `Il medico "${patient.assigned_doctor}" non è attivo. Attivare il medico prima di passare il paziente in attesa.`,
+          );
+        }
+
+        doctorId = activeDoctor.id;
+
+        // Aggiorna assigned_doctor e assigned_study del paziente
+        await firstValueFrom(
+          this.patientService
+            .updatePatient(patient.id, {
+              assigned_doctor: doctorId,
+              assigned_study: activeDoctor.study,
+            })
+            .pipe(take(1)),
+        );
+      }
+
+      // Ora segna il paziente come arrivato
       await firstValueFrom(
-        this.patientService.markArrived(patient.id).pipe(take(1))
+        this.patientService.markArrived(patient.id).pipe(take(1)),
       );
+
       this.presentToast(`Paziente passato in attesa`, 'success');
     } catch (err: any) {
       this.presentToast(`Errore: ${err.message}`, 'danger');
@@ -255,19 +291,41 @@ export class SegreteriaPage implements OnInit {
       const headers = rows[0] as string[];
       const idxDate = headers.indexOf('Data Ora');
       const idxName = headers.indexOf('Paziente');
-      const idxRoom = headers.indexOf('Stanza');
-      if (idxDate < 0 || idxName < 0 || idxRoom < 0) {
+      const idxDoctor = headers.indexOf('Medico');
+      if (idxDate < 0 || idxName < 0 || idxDoctor < 0) {
         console.error('Colonne mancanti:', headers);
         throw new Error(
-          'Assicurati che gli header siano esattamente "Data Ora", "Paziente", "Stanza"'
+          'Assicurati che gli header siano esattamente "Data Ora", "Paziente", "Medico"',
         );
       }
+
+      // Ottieni la lista di tutti i nomi dalla doctor-list per la validazione
+      const doctorList = await firstValueFrom(
+        this.doctorService.getDoctorList(),
+      );
+
+      // Ottieni i medici attivi per ottenere gli ID (opzionale)
+      const activeDoctors = await firstValueFrom(this.doctorService.doctors$);
+
+      // Crea una mappa per il matching flessibile: nome normalizzato -> nome originale dalla doctor-list
+      const doctorNameMap = new Map<string, string>();
+      doctorList.forEach((doctorName) => {
+        const normalized = this.normalizeDoctorName(doctorName);
+        doctorNameMap.set(normalized, doctorName);
+      });
+
+      // Crea una mappa per gli ID attivi: nome normalizzato -> ID attivo (se esiste)
+      const activeDoctorIdMap = new Map<string, string>();
+      activeDoctors.forEach((activeDoc) => {
+        const normalized = this.normalizeDoctorName(activeDoc.name);
+        activeDoctorIdMap.set(normalized, activeDoc.id);
+      });
 
       // Filtra e mappa i pazienti
       const dataRows = rows
         .slice(1)
         // rimuovo righe incomplete
-        .filter((r) => r[idxDate] != null && r[idxName] && r[idxRoom]);
+        .filter((r) => r[idxDate] != null && r[idxName] && r[idxDoctor]);
 
       const patients = dataRows.map((r) => {
         // Parsing Data/Ora
@@ -291,12 +349,29 @@ export class SegreteriaPage implements OnInit {
           throw new Error(`Data non valida: ${rawDate}`);
         }
 
-        // Parsing room: numeric or text (Studio X or Palestra)
-        const rawRoom = String(r[idxRoom]).trim();
-        const match = rawRoom.match(/\d+/);
-        // Se match esiste (es. “Studio 4”), uso il numero
-        // Altrimenti (es. “Palestra”), mantengo tutta la stringa
-        const assignedStudy = match ? Number(match[0]) : rawRoom;
+        // Parsing medico: cerchiamo l'ID del medico dal nome
+        const rawDoctor = String(r[idxDoctor]).trim();
+
+        // Normalizza il nome del medico per il matching flessibile
+        const normalizedInput = this.normalizeDoctorName(rawDoctor);
+
+        // Validazione: verifica che il medico esista nella doctor-list e trova il nome corretto
+        let matchedDoctorName = null;
+        for (const [
+          normalizedDbName,
+          originalName,
+        ] of doctorNameMap.entries()) {
+          if (this.isDoctorMatch(normalizedInput, normalizedDbName)) {
+            matchedDoctorName = originalName;
+            break;
+          }
+        }
+
+        if (!matchedDoctorName) {
+          throw new Error(
+            `Medico "${rawDoctor}" non trovato. Verificare che il nome sia corretto. Sono accettate anche forme abbreviate come "Delfino" per "dott.ssa Delfino Claudia".`,
+          );
+        }
 
         // Camel Case nome
         const rawName = String(r[idxName]).trim();
@@ -307,8 +382,9 @@ export class SegreteriaPage implements OnInit {
 
         return {
           full_name,
-          assigned_study: assignedStudy,
+          assigned_doctor: matchedDoctorName,
           appointment_time: localIso,
+          status: 'prenotato',
         };
       });
 
@@ -318,7 +394,7 @@ export class SegreteriaPage implements OnInit {
       }
 
       // Invio al backend
-      this.patientService.bulkCreate(patients).toPromise();
+      await this.patientService.bulkCreate(patients).toPromise();
 
       // Success toast
       const toast = await this.toastCtrl.create({
@@ -347,7 +423,8 @@ export class SegreteriaPage implements OnInit {
 
   private groupByStatus(
     list: Patient[],
-    filterDatePrenotati: string
+    doctors: Doctor[],
+    filterDatePrenotati: string,
   ): {
     booked: PatientGroup[];
     waiting: PatientGroup[];
@@ -360,7 +437,7 @@ export class SegreteriaPage implements OnInit {
       // Filtro per status
       let slice = list.filter((p) => p.status === status);
 
-      // applichiamo il filtro “oggi” su in_attesa
+      // applichiamo il filtro "oggi" su in_attesa
       if (status === 'in_attesa') {
         // solo quelli di oggi
         slice = slice.filter((p) => p.appointment_time?.startsWith(todayStr));
@@ -381,12 +458,39 @@ export class SegreteriaPage implements OnInit {
 
       // Ordino per appointment_time crescente
       slice = slice.sort((a, b) =>
-        a.appointment_time.localeCompare(b.appointment_time)
+        a.appointment_time.localeCompare(b.appointment_time),
       );
 
-      // Raggruppo per studio
+      // Per i pazienti prenotati, mostra sempre tutti in una lista singola senza raggruppamento per studio
+      if (status === 'prenotato') {
+        return [
+          {
+            study: 'Tutti i prenotati',
+            patients: slice,
+          },
+        ];
+      }
+
+      // Per gli altri status, raggruppa per studio
+      // Prima, crea una mappa medico -> studio per lookup veloce
+      const doctorToStudyMap = new Map<string, number | string>();
+      doctors.forEach((d) => {
+        doctorToStudyMap.set(d.id, d.study);
+      });
+
+      // Estrai gli studi unici dai pazienti tramite i loro medici assegnati
       const studies = Array.from(
-        new Set(slice.map((p) => p.assigned_study))
+        new Set(
+          slice
+            .map((p) => {
+              // Prova assigned_doctor prima, poi assigned_study come fallback
+              if (p.assigned_doctor) {
+                return doctorToStudyMap.get(p.assigned_doctor);
+              }
+              return p.assigned_study;
+            })
+            .filter((study): study is number | string => study !== undefined),
+        ),
       ).sort((a, b) => {
         const aIsNum = typeof a === 'number';
         const bIsNum = typeof b === 'number';
@@ -405,9 +509,18 @@ export class SegreteriaPage implements OnInit {
           return String(a).localeCompare(String(b));
         }
       });
+
       return studies.map((study) => ({
         study,
-        patients: slice.filter((p) => p.assigned_study === study),
+        patients: slice.filter((p) => {
+          // Controlla se il paziente appartiene a questo studio
+          if (p.assigned_doctor) {
+            const docStudy = doctorToStudyMap.get(p.assigned_doctor);
+            return docStudy === study;
+          }
+          // Fallback su assigned_study per retrocompatibilità
+          return p.assigned_study === study;
+        }),
       }));
     };
     return {
@@ -449,18 +562,26 @@ export class SegreteriaPage implements OnInit {
   }
 
   // helper che raggruppa SOLO prenotati per studio e opzionalmente data
+  // DEPRECATO: non usato più, mantenuto per retrocompatibilità
   private groupByStudyStatus(
     list: Patient[],
-    dateFilter?: string
+    dateFilter?: string,
   ): PatientGroup[] {
     let slice = dateFilter
       ? list.filter((p) => p.appointment_time.startsWith(dateFilter))
       : [...list];
     // ordino per appointment_time
     slice.sort((a, b) => a.appointment_time.localeCompare(b.appointment_time));
-    // raggruppo per studio (riusa la logica del tuo groupByStatus)
+
+    // NOTA: questa funzione è deprecata, usa assigned_doctor tramite groupByStatus
+    // Mantenuta solo per retrocompatibilità
+    // Filtra solo pazienti con assigned_study valido (per retrocompatibilità)
     const studies = Array.from(
-      new Set(slice.map((p) => p.assigned_study))
+      new Set(
+        slice
+          .map((p) => p.assigned_study)
+          .filter((s): s is number | string => s !== undefined),
+      ),
     ).sort((a, b) => {
       const na = typeof a === 'number',
         nb = typeof b === 'number';
@@ -488,6 +609,63 @@ export class SegreteriaPage implements OnInit {
       .split(/\s+/)
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(' ');
+  }
+
+  // Normalizza il nome di un medico per il matching flessibile
+  // Rimuove prefissi, converte in lowercase e trimma
+  private normalizeDoctorName(name: string): string {
+    return name
+      .toLowerCase()
+      .replace(/^(dott\.?\s*ssa\.?|dott\.?|dr\.?|prof\.?|d\.o\.)\s*/i, '') // Rimuove prefissi completi
+      .trim();
+  }
+
+  // Verifica se due nomi di medici corrispondono in modo flessibile ma preciso
+  // Richiede che almeno il cognome corrisponda esattamente
+  private isDoctorMatch(input: string, dbName: string): boolean {
+    // Se l'input corrisponde esattamente al nome normalizzato del database
+    if (input === dbName) {
+      return true;
+    }
+
+    // Dividi entrambi i nomi in parti (nome, cognome, titoli, etc.)
+    const inputParts = input.split(/\s+/);
+    const dbParts = dbName.split(/\s+/);
+
+    // Estrai il cognome (ultima parte significativa, ignorando titoli)
+    const getLastName = (parts: string[]) => {
+      // Filtra parti che sembrano titoli
+      const filtered = parts.filter(
+        (part) => !/^(dott\.?|dr\.?|prof\.?)$/i.test(part),
+      );
+      return filtered.length > 0 ? filtered[filtered.length - 1] : '';
+    };
+
+    const inputLastName = getLastName(inputParts);
+    const dbLastName = getLastName(dbParts);
+
+    // Il cognome deve corrispondere esattamente (case-insensitive)
+    if (
+      inputLastName &&
+      dbLastName &&
+      inputLastName.toLowerCase() === dbLastName.toLowerCase()
+    ) {
+      return true;
+    }
+
+    // Fallback: se una parte dell'input corrisponde esattamente a una parte del db
+    return inputParts.some((inputPart) =>
+      dbParts.some(
+        (dbPart) => inputPart.toLowerCase() === dbPart.toLowerCase(),
+      ),
+    );
+  }
+
+  // Verifica se una stringa è un UUID valido
+  private isValidUUID(str: string): boolean {
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(str);
   }
 
   resetFilterDate() {
@@ -571,7 +749,16 @@ export class SegreteriaPage implements OnInit {
     const tpl = this.ticketTpl;
     //const num = this.lastCreatedPatient.assigned_number;
     const num = patient.assigned_number;
-    const studio = patient.assigned_study;
+
+    // Recupera lo studio dal medico assegnato
+    let studio: number | string = patient.assigned_study || 'N/A'; // fallback
+    if (patient.assigned_doctor) {
+      const doctors = await firstValueFrom(this.doctorService.doctors$);
+      const doctor = doctors.find((d) => d.id === patient.assigned_doctor);
+      if (doctor) {
+        studio = doctor.study;
+      }
+    }
 
     // Definisco stili CSS
     const styles = `

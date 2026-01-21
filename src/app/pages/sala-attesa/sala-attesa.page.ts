@@ -53,15 +53,15 @@ export class SalaAttesaPage implements OnInit, OnDestroy {
         })
         //.sort((a, b) => a.study - b.study)  ordino i medici per studio
         .map<Row>((doc) => {
-          // Paziente "in visita" per questo studio
+          // Paziente "in visita" per questo medico
           const curr = patients.find(
-            (p) => p.assigned_study === doc.study && p.status === 'in_visita'
+            (p) => p.assigned_doctor === doc.id && p.status === 'in_visita'
           );
 
-          // lista di attesa per questo studio
+          // lista di attesa per questo medico
           const waiting = patients
             .filter(
-              (p) => p.assigned_study === doc.study && p.status === 'in_attesa'
+              (p) => p.assigned_doctor === doc.id && p.status === 'in_attesa'
             )
             // ordino per appointment_time
             .sort((a, b) =>
@@ -99,13 +99,20 @@ export class SalaAttesaPage implements OnInit, OnDestroy {
 
     // ogni volta che cambia lo snapshot dei pazienti...
     this.sub.add(
-      this.patientService.patients$
+      combineLatest([
+        this.patientService.patients$,
+        this.doctorService.doctors$
+      ])
         .pipe(
-          // riduco al solo array di {study, id}, ordinato per studio
-          map((list) =>
-            list
-              .filter((p) => p.status === 'in_visita')
-              .map((p) => ({ study: p.assigned_study, id: p.id }))
+          // riduco al solo array di {doctorId, id}, con studio recuperato dal medico
+          map(([patients, doctors]) =>
+            patients
+              .filter((p) => p.status === 'in_visita' && p.assigned_doctor)
+              .map((p) => {
+                const doctor = doctors.find((d) => d.id === p.assigned_doctor);
+                return { doctorId: p.assigned_doctor, study: doctor?.study, id: p.id };
+              })
+              .filter((p) => p.study !== undefined) // rimuovi pazienti senza medico valido
               .sort((a, b) => {
                 const aIsNum = typeof a.study === 'number';
                 const bIsNum = typeof b.study === 'number';
@@ -125,12 +132,12 @@ export class SalaAttesaPage implements OnInit, OnDestroy {
                 }
               })
           ),
-          // emetto solo quando l’array cambia davvero
+          // emetto solo quando l'array cambia davvero
           distinctUntilChanged(
             (prev, curr) =>
               prev.length === curr.length &&
               prev.every(
-                (x, i) => x.study === curr[i].study && x.id === curr[i].id
+                (x, i) => x.doctorId === curr[i].doctorId && x.id === curr[i].id
               )
           ),
           // voglio i valori a coppie [vecchio, nuovo]
@@ -140,7 +147,7 @@ export class SalaAttesaPage implements OnInit, OnDestroy {
           // notifico solo i nuovi entrati in visita
           curr.forEach((p) => {
             if (!prev.find((x) => x.id === p.id)) {
-              this.triggerNotification(p.study);
+              this.triggerNotification(p.study!);
             }
           });
         })

@@ -20,15 +20,15 @@
     ></ion-input>
   </ion-item>
   <ion-item>
-    <ion-label position="stacked">Studio</ion-label>
+    <ion-label position="stacked">Medico</ion-label>
     <ion-select
-      [(ngModel)]="assignedStudy"
-      name="assignedStudy"
-      placeholder="Seleziona studio"
+      [(ngModel)]="assignedDoctor"
+      name="assignedDoctor"
+      placeholder="Seleziona medico"
       required
     >
-      <ion-select-option *ngFor="let s of studies" [value]="s">
-        {{ s === "Palestra" ? s : "Studio " + s }}
+      <ion-select-option *ngFor="let doctor of doctors" [value]="doctor.id">
+        {{ doctor.name }} ({{ doctor.study === "Palestra" ? doctor.study : "Studio " + doctor.study }})
       </ion-select-option>
     </ion-select>
   </ion-item>
@@ -76,7 +76,7 @@
     expand="full"
     class="modal-button"
     type="submit"
-    [disabled]="!fullName || !appointmentTime || !assignedStudy"
+    [disabled]="!fullName || !appointmentTime || !assignedDoctor"
     >Aggiungi</ion-button
   >
 </form>

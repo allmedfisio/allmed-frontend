@@ -9,7 +9,8 @@ export interface Patient {
   id: string;
   full_name: string;
   assigned_number: number;
-  assigned_study: number | string;
+  assigned_study?: number | string; // mantenuto per retrocompatibilità, deprecato
+  assigned_doctor: string; // ID del medico
   status: 'prenotato' | 'in_attesa' | 'in_visita' | 'completato';
   appointment_time: string;
 }
@@ -79,14 +80,14 @@ Aggiunge un nuovo paziente
 */
   addPatient(
     full_name: string,
-    assigned_study: number | string,
+    assigned_doctor: string,
     appointment_time: string,
     status: string
   ): Observable<Patient> {
     console.log('status in addPatient:' + status);
     return this.http.post<Patient>(`${environment.apiUrl}/patients`, {
       full_name,
-      assigned_study,
+      assigned_doctor,
       appointment_time,
       status,
     });

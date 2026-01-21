@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ModalController } from '@ionic/angular';
 import { PatientService } from '../services/patient.service';
+import { DoctorService, Doctor } from '../services/doctor.service';
 import { firstValueFrom } from 'rxjs';
 import { DateFilterModalComponent } from '../date-filter-modal/date-filter-modal.component';
 
@@ -12,19 +13,31 @@ import { DateFilterModalComponent } from '../date-filter-modal/date-filter-modal
 })
 export class AddPatientModalComponent implements OnInit {
   fullName: string = '';
-  assignedStudy!: number | string;
+  assignedDoctor!: string;
   appointmentTime!: string;
   patientStatus: 'in_attesa' | 'prenotato' = 'in_attesa';
   orariDisponibili: string[] = [];
-  studies: Array<number | string> = [1, 2, 3, 4, 5, 6, 'Palestra'];
+  doctors: Doctor[] = [];
 
   constructor(
     private patientService: PatientService,
+    private doctorService: DoctorService,
     private modalController: ModalController
   ) {}
 
   ngOnInit() {
     this.generaOrariDisponibili();
+    // Carica TUTTI i medici (non solo quelli attivi)
+    this.doctorService.getAllDoctors().subscribe((doctors) => {
+      this.doctors = doctors;
+    });
+    // Aggiorna anche quando cambiano (in caso di nuovi medici aggiunti)
+    this.doctorService.doctors$.subscribe((doctors) => {
+      // Unisci con quelli già caricati per evitare duplicati
+      const existingIds = new Set(this.doctors.map(d => d.id));
+      const newDoctors = doctors.filter(d => !existingIds.has(d.id));
+      this.doctors = [...this.doctors, ...newDoctors];
+    });
   }
 
   dismiss() {
@@ -55,7 +68,7 @@ export class AddPatientModalComponent implements OnInit {
   async addPatient() {
     if (
       !this.fullName ||
-      !this.assignedStudy ||
+      !this.assignedDoctor ||
       !this.appointmentTime ||
       !this.patientStatus
     )
@@ -63,7 +76,7 @@ export class AddPatientModalComponent implements OnInit {
     this.patientService
       .addPatient(
         this.fullName,
-        this.assignedStudy,
+        this.assignedDoctor,
         this.appointmentTime,
         this.patientStatus
       )

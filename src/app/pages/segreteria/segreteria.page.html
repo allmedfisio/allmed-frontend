@@ -148,12 +148,14 @@
               <ng-container
                 *ngFor="let group of pdata.booked; trackBy: trackByStudy"
               >
-                <ng-container *ngIf="isNumber(group.study); else plainLabel">
-                  <h3 class="studio">Studio {{ group.study }}</h3>
+                <ng-container *ngIf="group.study !== 'Tutti i prenotati'">
+                  <ng-container *ngIf="isNumber(group.study); else plainLabel">
+                    <h3 class="studio">Studio {{ group.study }}</h3>
+                  </ng-container>
+                  <ng-template #plainLabel>
+                    <h3 class="studio">{{ group.study }}</h3>
+                  </ng-template>
                 </ng-container>
-                <ng-template #plainLabel>
-                  <h3 class="studio">{{ group.study }}</h3>
-                </ng-template>
                 <ion-card
                   class="card-soft"
                   *ngFor="let patient of group.patients; trackBy: trackByPatientId"
