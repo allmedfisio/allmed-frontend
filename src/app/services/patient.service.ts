@@ -10,8 +10,16 @@ export interface Patient {
   full_name: string;
   assigned_number: number;
   assigned_study?: number | string; // mantenuto per retrocompatibilità, deprecato
-  assigned_doctor: string; // ID del medico
-  status: 'prenotato' | 'in_attesa' | 'in_visita' | 'completato';
+  assigned_doctor_id?: string; // ID del medico (per pazienti in_attesa/in_visita/completato/in_archivio)
+  assigned_doctor_name?: string; // Nome del medico (per tutti i pazienti)
+  status:
+    | 'prenotato'
+    | 'in_attesa'
+    | 'in_visita'
+    | 'completato'
+    | 'in_archivio';
+  phone?: string;
+  last_visit_date?: string; // YYYY-MM-DD usato per follow-up
   appointment_time: string;
 }
 
@@ -82,7 +90,8 @@ Aggiunge un nuovo paziente
     full_name: string,
     assigned_doctor: string,
     appointment_time: string,
-    status: string
+    status: string,
+    phone?: string,
   ): Observable<Patient> {
     console.log('status in addPatient:' + status);
     return this.http.post<Patient>(`${environment.apiUrl}/patients`, {
@@ -90,19 +99,22 @@ Aggiunge un nuovo paziente
       assigned_doctor,
       appointment_time,
       status,
+      phone,
     });
   }
 
   // Aggiunge pazienti in bulk da excel
   bulkCreate(patients: any[]): Observable<any> {
-    return this.http.post(`${environment.apiUrl}/patients/bulk`, patients);
+    return this.http.post(`${environment.apiUrl}/patients/bulk`, {
+      data: patients,
+    });
   }
 
   // Segna i pazienti prenotati come in-attesa
   markArrived(patientId: string): Observable<{ id: string; status: string }> {
     return this.http.put<{ id: string; status: string }>(
       `${environment.apiUrl}/patients/${patientId}/arrive`,
-      {}
+      {},
     );
   }
 
@@ -113,7 +125,7 @@ Segnala al backend che il paziente è stato chiamato / è in visita
   callPatient(patientId: string): Observable<{ id: string; status: string }> {
     return this.http.put<{ id: string; status: string }>(
       `${environment.apiUrl}/patients/${patientId}/call`,
-      {}
+      {},
     );
   }
 
@@ -125,7 +137,7 @@ Aggiorna uno o più campi di un paziente
   updatePatient(patientId: string, data: Partial<Patient>): Observable<void> {
     return this.http.put<void>(
       `${environment.apiUrl}/patients/${patientId}`,
-      data
+      data,
     );
   }
 
@@ -134,7 +146,17 @@ Rimuove un paziente
 */
   removePatient(patientId: string): Observable<void> {
     return this.http.delete<void>(
-      `${environment.apiUrl}/patients/${patientId}`
+      `${environment.apiUrl}/patients/${patientId}`,
+    );
+  }
+  /**
+  Termina il ciclo di un paziente: lo archivia e registra la data
+  @param patientId 
+  */
+  archivePatient(patientId: string): Observable<void> {
+    return this.http.put<void>(
+      `${environment.apiUrl}/patients/${patientId}/archive`,
+      {},
     );
   }
 
@@ -151,7 +173,7 @@ Rimuove un paziente
       `${environment.apiUrl}/patients/study/${studyId}`,
       {
         headers: { Authorization: `Bearer ${token}` },
-      }
+      },
     );
   }
 }

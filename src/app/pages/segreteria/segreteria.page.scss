@@ -76,3 +76,24 @@ ion-avatar {
   align-content: center;
   text-align: center;
 }
+
+.follow-up-badge {
+  border-radius: 50%;
+  min-width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+
+.version-footer {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  font-size: 0.75rem;
+  color: var(--ion-color-medium);
+  z-index: 10;
+  font-weight: 500;
+}

@@ -14,10 +14,16 @@
   <ion-input [(ngModel)]="fullName"></ion-input>
 </ion-item>
 <ion-item>
+  <ion-label position="stacked">Telefono</ion-label>
+  <ion-input [(ngModel)]="phone" type="tel"></ion-input>
+</ion-item>
+<ion-item>
   <ion-label position="stacked">Medico</ion-label>
   <ion-select [(ngModel)]="assignedDoctor" placeholder="Seleziona medico">
-    <ion-select-option *ngFor="let doctor of doctors" [value]="doctor.id">
-      {{ doctor.name }} ({{ doctor.study === "Palestra" ? doctor.study : "Studio " + doctor.study }})
+    <ion-select-option *ngFor="let doctor of doctors" [value]="doctor.name">
+      {{ doctor.name }} ({{
+        doctor.study === "Palestra" ? doctor.study : "Studio " + doctor.study
+      }})
     </ion-select-option>
   </ion-select>
 </ion-item>

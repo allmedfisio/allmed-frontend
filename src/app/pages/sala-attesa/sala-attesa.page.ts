@@ -55,17 +55,18 @@ export class SalaAttesaPage implements OnInit, OnDestroy {
         .map<Row>((doc) => {
           // Paziente "in visita" per questo medico
           const curr = patients.find(
-            (p) => p.assigned_doctor === doc.id && p.status === 'in_visita'
+            (p) => p.assigned_doctor_id === doc.id && p.status === 'in_visita',
           );
 
           // lista di attesa per questo medico
           const waiting = patients
             .filter(
-              (p) => p.assigned_doctor === doc.id && p.status === 'in_attesa'
+              (p) =>
+                p.assigned_doctor_id === doc.id && p.status === 'in_attesa',
             )
             // ordino per appointment_time
             .sort((a, b) =>
-              a.appointment_time.localeCompare(b.appointment_time)
+              a.appointment_time.localeCompare(b.appointment_time),
             );
 
           const next = waiting[0]; // primo in coda o undefined
@@ -77,9 +78,9 @@ export class SalaAttesaPage implements OnInit, OnDestroy {
             patientNumber: curr?.assigned_number ?? '-',
             nextPatientNumber: next?.assigned_number ?? '-',
           };
-        })
+        }),
     ),
-    shareReplay(1)
+    shareReplay(1),
   );
 
   // per evidenziare la riga che cambia
@@ -90,7 +91,7 @@ export class SalaAttesaPage implements OnInit, OnDestroy {
 
   constructor(
     private patientService: PatientService,
-    private doctorService: DoctorService
+    private doctorService: DoctorService,
   ) {}
 
   ngOnInit() {
@@ -101,16 +102,22 @@ export class SalaAttesaPage implements OnInit, OnDestroy {
     this.sub.add(
       combineLatest([
         this.patientService.patients$,
-        this.doctorService.doctors$
+        this.doctorService.doctors$,
       ])
         .pipe(
           // riduco al solo array di {doctorId, id}, con studio recuperato dal medico
           map(([patients, doctors]) =>
             patients
-              .filter((p) => p.status === 'in_visita' && p.assigned_doctor)
+              .filter((p) => p.status === 'in_visita' && p.assigned_doctor_id)
               .map((p) => {
-                const doctor = doctors.find((d) => d.id === p.assigned_doctor);
-                return { doctorId: p.assigned_doctor, study: doctor?.study, id: p.id };
+                const doctor = doctors.find(
+                  (d) => d.id === p.assigned_doctor_id,
+                );
+                return {
+                  doctorId: p.assigned_doctor_id,
+                  study: doctor?.study,
+                  id: p.id,
+                };
               })
               .filter((p) => p.study !== undefined) // rimuovi pazienti senza medico valido
               .sort((a, b) => {
@@ -130,18 +137,19 @@ export class SalaAttesaPage implements OnInit, OnDestroy {
                   // entrambi stringhe → ordine alfabetico
                   return String(a.study).localeCompare(String(b.study));
                 }
-              })
+              }),
           ),
           // emetto solo quando l'array cambia davvero
           distinctUntilChanged(
             (prev, curr) =>
               prev.length === curr.length &&
               prev.every(
-                (x, i) => x.doctorId === curr[i].doctorId && x.id === curr[i].id
-              )
+                (x, i) =>
+                  x.doctorId === curr[i].doctorId && x.id === curr[i].id,
+              ),
           ),
           // voglio i valori a coppie [vecchio, nuovo]
-          pairwise()
+          pairwise(),
         )
         .subscribe(([prev, curr]) => {
           // notifico solo i nuovi entrati in visita
@@ -150,7 +158,7 @@ export class SalaAttesaPage implements OnInit, OnDestroy {
               this.triggerNotification(p.study!);
             }
           });
-        })
+        }),
     );
   }
 

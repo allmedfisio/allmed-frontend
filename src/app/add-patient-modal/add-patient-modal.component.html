@@ -20,6 +20,16 @@
     ></ion-input>
   </ion-item>
   <ion-item>
+    <ion-label position="stacked">Telefono</ion-label>
+    <ion-input
+      type="tel"
+      [(ngModel)]="phone"
+      name="phone"
+      inputmode="tel"
+      placeholder="Es. 3331234567"
+    ></ion-input>
+  </ion-item>
+  <ion-item>
     <ion-label position="stacked">Medico</ion-label>
     <ion-select
       [(ngModel)]="assignedDoctor"
@@ -27,17 +37,34 @@
       placeholder="Seleziona medico"
       required
     >
-      <ion-select-option *ngFor="let doctor of doctors" [value]="doctor.id">
-        {{ doctor.name }} ({{ doctor.study === "Palestra" ? doctor.study : "Studio " + doctor.study }})
+      <ion-select-option
+        *ngFor="let doctor of availableDoctors"
+        [value]="doctor.name"
+      >
+        {{ doctor.name }}
       </ion-select-option>
     </ion-select>
   </ion-item>
+  <ion-text
+    color="warning"
+    class="ion-padding-start ion-padding-bottom"
+    *ngIf="
+      patientStatus === 'in_attesa' &&
+      assignedDoctor &&
+      !activeDoctorsSet.has(assignedDoctor)
+    "
+  >
+    <small
+      >⚠️ Questo medico non è attivo al momento. Seleziona "Prenotato" per
+      aggiungerlo comunque.</small
+    >
+  </ion-text>
   <ion-item button (click)="openDateTimePicker()">
     <ion-label position="stacked">Data & Orario Appuntamento</ion-label>
     <ion-text class="placeholder">
       {{
         appointmentTime
-          ? (appointmentTime | date : "dd/MM/yyyy HH:mm")
+          ? (appointmentTime | date: "dd/MM/yyyy HH:mm")
           : "Seleziona appuntamento"
       }}
     </ion-text>
@@ -76,7 +103,7 @@
     expand="full"
     class="modal-button"
     type="submit"
-    [disabled]="!fullName || !appointmentTime || !assignedDoctor"
+    [disabled]="!fullName || !appointmentTime || !isValidDoctorSelection()"
     >Aggiungi</ion-button
   >
 </form>

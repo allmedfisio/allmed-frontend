@@ -17,7 +17,7 @@ const routes: Routes = [
     path: 'segreteria',
     loadChildren: () =>
       import('./pages/segreteria/segreteria.module').then(
-        (m) => m.SegreteriaPageModule
+        (m) => m.SegreteriaPageModule,
       ),
     canActivate: [AuthGuardService],
     data: {
@@ -37,7 +37,7 @@ const routes: Routes = [
     path: 'sala-attesa',
     loadChildren: () =>
       import('./pages/sala-attesa/sala-attesa.module').then(
-        (m) => m.SalaAttesaPageModule
+        (m) => m.SalaAttesaPageModule,
       ),
     canActivate: [AuthGuardService],
     data: {
@@ -53,8 +53,19 @@ const routes: Routes = [
     path: 'ticket-config',
     loadChildren: () =>
       import('./pages/ticket-config/ticket-config.module').then(
-        (m) => m.TicketConfigPageModule
+        (m) => m.TicketConfigPageModule,
       ),
+  },
+  {
+    path: 'follow-up',
+    loadChildren: () =>
+      import('./pages/follow-up/follow-up.module').then(
+        (m) => m.FollowUpPageModule,
+      ),
+    canActivate: [AuthGuardService],
+    data: {
+      roles: ['admin', 'segreteria'],
+    },
   },
 ];
 

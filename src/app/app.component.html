@@ -28,6 +28,20 @@
             <ion-label class="section-title">Modifica Ticket</ion-label>
           </ion-item>
         </ion-menu-toggle>
+        <ion-menu-toggle auto-hide="false">
+          <ion-item routerLink="/follow-up" detail="false">
+            <ion-icon slot="start" name="call-outline" class="icon"></ion-icon>
+            <ion-label class="section-title">Follow-up</ion-label>
+            <ion-badge
+              slot="end"
+              color="secondary"
+              *ngIf="followUpCount$ | async as count"
+              [hidden]="count === 0"
+            >
+              {{ count }}
+            </ion-badge>
+          </ion-item>
+        </ion-menu-toggle>
       </ion-list>
     </ion-content>
   </ion-menu>

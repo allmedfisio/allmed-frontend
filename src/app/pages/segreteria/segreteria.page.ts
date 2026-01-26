@@ -1,5 +1,6 @@
 import {
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   Injector,
   OnInit,
@@ -24,13 +25,14 @@ import {
   BehaviorSubject,
   combineLatest,
 } from 'rxjs';
-import { map, tap } from 'rxjs/operators';
+import { map, tap, filter } from 'rxjs/operators';
 import { Doctor, DoctorService } from 'src/app/services/doctor.service';
 import { AuthService, UserProfile } from 'src/app/services/auth.service';
 import {
   TemplateService,
   TicketTemplate,
 } from 'src/app/services/template.service';
+import { VersionService } from 'src/app/services/version.service';
 import * as XLSX from 'xlsx';
 import { DateFilterModalComponent } from 'src/app/date-filter-modal/date-filter-modal.component';
 
@@ -59,19 +61,21 @@ interface DateGroup {
 export class SegreteriaPage implements OnInit {
   userProfile$!: Observable<UserProfile>;
   patientsByStatus$!: Observable<{
-    booked: { study: number | string; patients: Patient[] }[];
-    waiting: { study: number | string; patients: Patient[] }[];
-    inVisit: { study: number | string; patients: Patient[] }[];
+    booked: PatientGroup[];
+    waiting: PatientGroup[];
+    inVisit: PatientGroup[];
+    completed: PatientGroup[];
     bookedByDate: DateGroup[];
   }>;
   doctorsByStudy$!: Observable<DoctorGroup[]>;
+  followUpCount$!: Observable<number>;
 
   // Filtro data per i prenotati
   filterDatePrenotati: string = new Date().toISOString().split('T')[0];
   private filterDatePrenotati$ = new BehaviorSubject<string>(
     this.filterDatePrenotati,
   );
-  segment: 'in_attesa' | 'prenotato' = 'in_attesa';
+  segment: 'in_attesa' | 'prenotato' | 'completato' = 'in_attesa';
 
   // memorizzo qui il template, così non userò mai più getTemplate() a runtime
   ticketTpl!: TicketTemplate;
@@ -82,6 +86,7 @@ export class SegreteriaPage implements OnInit {
   assignedStudy: number | null = null;
   doctorName: string = '';
   doctorStudy: number = NaN;
+  smsSent: Set<string> = new Set();
 
   // File per upload excel
   file: File | null = null;
@@ -89,6 +94,7 @@ export class SegreteriaPage implements OnInit {
   // Dati dell'user -> Da modificare
   userName: string = 'Nome Utente';
   userImage: string = 'path-to-image.jpg';
+  appVersion: string = '';
 
   constructor(
     private modalController: ModalController,
@@ -101,7 +107,11 @@ export class SegreteriaPage implements OnInit {
     private authService: AuthService,
     private tplService: TemplateService,
     private injector: Injector,
-  ) {}
+    private cdr: ChangeDetectorRef,
+    private versionService: VersionService,
+  ) {
+    this.appVersion = this.versionService.getVersion();
+  }
 
   ngOnInit() {
     // Sottoscrivi (via async pipe) al profilo
@@ -119,8 +129,8 @@ export class SegreteriaPage implements OnInit {
       this.filterDatePrenotati$.asObservable(),
     ]).pipe(
       map(([list, doctors, filterDate]) => {
-        // 1) ottieni i tre gruppi base
-        const { waiting, inVisit, booked } = this.groupByStatus(
+        // 1) ottieni i quattro gruppi base
+        const { waiting, inVisit, booked, completed } = this.groupByStatus(
           list,
           doctors,
           filterDate,
@@ -135,19 +145,26 @@ export class SegreteriaPage implements OnInit {
             new Set(prenotatiAll.map((p) => p.appointment_time.split('T')[0])),
           ).sort();
           bookedByDate = dates.map((date) => {
-            // raggruppa per studio i prenotati di quel giorno
+            // raggruppa i prenotati di quel giorno senza etichetta "Tutti i prenotati"
             const slice = prenotatiAll.filter((p) =>
               p.appointment_time.startsWith(date),
             );
             return {
               date,
-              groups: this.groupByStatus(slice, doctors, date).booked,
+              groups: [
+                {
+                  study: '',
+                  patients: slice.sort((a, b) =>
+                    a.appointment_time.localeCompare(b.appointment_time),
+                  ),
+                },
+              ],
             };
           });
         }
 
-        // 3) ritorno l’oggetto con tutte e quattro le proprietà
-        return { waiting, inVisit, booked, bookedByDate };
+        // 3) ritorno l’oggetto con tutte e cinque le proprietà
+        return { waiting, inVisit, booked, completed, bookedByDate };
       }),
     );
 
@@ -162,6 +179,20 @@ export class SegreteriaPage implements OnInit {
         this.ticketTpl = tpl;
       });
     });
+
+    // Conta i pazienti in follow-up (in_archivio e data > 3 mesi fa)
+    this.followUpCount$ = this.patientService.patients$.pipe(
+      map((list) => {
+        const threeMonthsAgo = new Date();
+        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+        return list.filter(
+          (p) =>
+            p.status === 'in_archivio' &&
+            !!p.last_visit_date &&
+            new Date(p.last_visit_date) <= threeMonthsAgo,
+        ).length;
+      }),
+    );
   }
 
   ngOnDestroy() {
@@ -175,8 +206,9 @@ export class SegreteriaPage implements OnInit {
   }
 
   async callPatient(patient: Patient): Promise<void> {
-    // Usa direttamente assigned_doctor invece di cercare per studio
-    if (!patient.assigned_doctor) {
+    // Usa assigned_doctor_id per pazienti in visita, o il nome per prenotati
+    const doctorId = patient.assigned_doctor_id;
+    if (!doctorId) {
       this.presentToast(`Paziente senza medico assegnato`, 'danger');
       return;
     }
@@ -189,13 +221,13 @@ export class SegreteriaPage implements OnInit {
       // Aggiorna il paziente in visita del medico
       await firstValueFrom(
         this.doctorService
-          .updateLastPatient(patient.assigned_doctor, patient.full_name)
+          .updateLastPatient(doctorId, patient.full_name)
           .pipe(take(1)),
       );
 
       // Recupera il nome del medico per il messaggio
       const doctors = await firstValueFrom(this.doctorService.doctors$);
-      const doc = doctors.find((d) => d.id === patient.assigned_doctor);
+      const doc = doctors.find((d) => d.id === doctorId);
       const doctorName = doc?.name || 'medico';
 
       this.presentToast(
@@ -209,49 +241,38 @@ export class SegreteriaPage implements OnInit {
 
   async patientArrived(patient: Patient): Promise<void> {
     try {
-      // Se assigned_doctor è un nome (non un ID), convertilo in ID del medico attivo
-      let doctorId = patient.assigned_doctor;
-      if (
-        patient.assigned_doctor &&
-        !this.isValidUUID(patient.assigned_doctor)
-      ) {
-        // assigned_doctor è un nome, cerca il medico attivo corrispondente
-        const activeDoctors = await firstValueFrom(this.doctorService.doctors$);
-
-        const activeDoctor = activeDoctors.find((doc) =>
-          this.isDoctorMatch(
-            this.normalizeDoctorName(patient.assigned_doctor),
-            this.normalizeDoctorName(doc.name),
-          ),
-        );
-
-        if (!activeDoctor) {
-          throw new Error(
-            `Il medico "${patient.assigned_doctor}" non è attivo. Attivare il medico prima di passare il paziente in attesa.`,
-          );
-        }
-
-        doctorId = activeDoctor.id;
-
-        // Aggiorna assigned_doctor e assigned_study del paziente
-        await firstValueFrom(
-          this.patientService
-            .updatePatient(patient.id, {
-              assigned_doctor: doctorId,
-              assigned_study: activeDoctor.study,
-            })
-            .pipe(take(1)),
-        );
-      }
-
       // Ora segna il paziente come arrivato
+      // Il backend gestisce la conversione da assigned_doctor_name a assigned_doctor_id
       await firstValueFrom(
         this.patientService.markArrived(patient.id).pipe(take(1)),
       );
 
-      this.presentToast(`Paziente passato in attesa`, 'success');
+      this.presentToast(
+        `✓ ${patient.full_name} è ora in sala d'attesa`,
+        'success',
+      );
     } catch (err: any) {
-      this.presentToast(`Errore: ${err.message}`, 'danger');
+      console.error('Errore patientArrived:', err);
+      // Gestisce gli errori dal backend con messaggi chiari
+      const errorMsg =
+        err?.error?.error || err?.message || 'Errore sconosciuto';
+
+      if (errorMsg.includes('non è attualmente attivo')) {
+        this.presentToast(
+          `⚠ ${patient.assigned_doctor_name} non è disponibile al momento. Attivalo prima di segnare l'arrivo`,
+          'danger',
+        );
+      } else if (errorMsg.includes('Nessun medico')) {
+        this.presentToast(
+          `⚠ ${patient.full_name} non ha un medico assegnato`,
+          'danger',
+        );
+      } else {
+        this.presentToast(
+          `⚠ Impossibile segnare l'arrivo: ${errorMsg}`,
+          'danger',
+        );
+      }
     }
   }
 
@@ -292,6 +313,11 @@ export class SegreteriaPage implements OnInit {
       const idxDate = headers.indexOf('Data Ora');
       const idxName = headers.indexOf('Paziente');
       const idxDoctor = headers.indexOf('Medico');
+      // Cerca la colonna del telefono con nomi diversi
+      let idxPhone = headers.indexOf('Telefono');
+      if (idxPhone < 0) idxPhone = headers.indexOf('Phone');
+      if (idxPhone < 0) idxPhone = headers.indexOf('Cellulare');
+
       if (idxDate < 0 || idxName < 0 || idxDoctor < 0) {
         console.error('Colonne mancanti:', headers);
         throw new Error(
@@ -380,11 +406,17 @@ export class SegreteriaPage implements OnInit {
         // crea una ISO senza 'Z', es. "2025-06-11T18:30:00"
         const localIso = dt.toISOString().slice(0, 19);
 
+        const phoneVal =
+          idxPhone >= 0 && r[idxPhone] != null
+            ? String(r[idxPhone]).trim()
+            : undefined;
+
         return {
           full_name,
           assigned_doctor: matchedDoctorName,
           appointment_time: localIso,
           status: 'prenotato',
+          ...(phoneVal ? { phone: phoneVal } : {}),
         };
       });
 
@@ -398,8 +430,8 @@ export class SegreteriaPage implements OnInit {
 
       // Success toast
       const toast = await this.toastCtrl.create({
-        message: 'Import dei pazienti riuscito!',
-        duration: 2000,
+        message: `✓ Importati ${patients.length} pazienti con successo`,
+        duration: 3000,
         color: 'success',
       });
       await toast.present();
@@ -408,8 +440,8 @@ export class SegreteriaPage implements OnInit {
     } catch (err: any) {
       console.error(err);
       const toast = await this.toastCtrl.create({
-        message: 'Errore import: ' + err.message,
-        duration: 3000,
+        message: `⚠ Errore durante l'importazione: ${err.message || 'Verifica il file Excel'}`,
+        duration: 4000,
         color: 'danger',
       });
       await toast.present();
@@ -429,6 +461,7 @@ export class SegreteriaPage implements OnInit {
     booked: PatientGroup[];
     waiting: PatientGroup[];
     inVisit: PatientGroup[];
+    completed: PatientGroup[];
   } {
     // Data odierna
     const todayStr = new Date().toISOString().split('T')[0];
@@ -461,11 +494,20 @@ export class SegreteriaPage implements OnInit {
         a.appointment_time.localeCompare(b.appointment_time),
       );
 
-      // Per i pazienti prenotati, mostra sempre tutti in una lista singola senza raggruppamento per studio
+      // Per i pazienti prenotati e completati, mostra sempre tutti in una lista singola senza raggruppamento per studio
       if (status === 'prenotato') {
         return [
           {
             study: 'Tutti i prenotati',
+            patients: slice,
+          },
+        ];
+      }
+
+      if (status === 'completato') {
+        return [
+          {
+            study: 'Visite Completate',
             patients: slice,
           },
         ];
@@ -483,9 +525,9 @@ export class SegreteriaPage implements OnInit {
         new Set(
           slice
             .map((p) => {
-              // Prova assigned_doctor prima, poi assigned_study come fallback
-              if (p.assigned_doctor) {
-                return doctorToStudyMap.get(p.assigned_doctor);
+              // Prova assigned_doctor_id prima, poi assigned_study come fallback
+              if (p.assigned_doctor_id) {
+                return doctorToStudyMap.get(p.assigned_doctor_id);
               }
               return p.assigned_study;
             })
@@ -514,8 +556,8 @@ export class SegreteriaPage implements OnInit {
         study,
         patients: slice.filter((p) => {
           // Controlla se il paziente appartiene a questo studio
-          if (p.assigned_doctor) {
-            const docStudy = doctorToStudyMap.get(p.assigned_doctor);
+          if (p.assigned_doctor_id) {
+            const docStudy = doctorToStudyMap.get(p.assigned_doctor_id);
             return docStudy === study;
           }
           // Fallback su assigned_study per retrocompatibilità
@@ -527,6 +569,37 @@ export class SegreteriaPage implements OnInit {
       booked: byStatus('prenotato'),
       waiting: byStatus('in_attesa'),
       inVisit: byStatus('in_visita'),
+      completed: (() => {
+        // Raggruppa i pazienti completati per medico (doctor name)
+        const completedPatients = list
+          .filter((p) => p.status === 'completato')
+          .sort((a, b) => a.appointment_time.localeCompare(b.appointment_time));
+
+        // Crea una mappa medico -> pazienti
+        const doctorToStudyMap = new Map<string, number | string>();
+        doctors.forEach((d) => {
+          doctorToStudyMap.set(d.id, d.study);
+        });
+
+        // Estrai i medici unici (usando assigned_doctor_name)
+        const uniqueDoctors = Array.from(
+          new Set(
+            completedPatients
+              .map((p) => p.assigned_doctor_name)
+              .filter(
+                (name): name is string => name !== undefined && name !== '',
+              ),
+          ),
+        ).sort();
+
+        // Raggruppa per medico
+        return uniqueDoctors.map((doctorName) => ({
+          study: doctorName,
+          patients: completedPatients.filter(
+            (p) => p.assigned_doctor_name === doctorName,
+          ),
+        }));
+      })(),
     };
   }
 
@@ -752,9 +825,9 @@ export class SegreteriaPage implements OnInit {
 
     // Recupera lo studio dal medico assegnato
     let studio: number | string = patient.assigned_study || 'N/A'; // fallback
-    if (patient.assigned_doctor) {
+    if (patient.assigned_doctor_id) {
       const doctors = await firstValueFrom(this.doctorService.doctors$);
-      const doctor = doctors.find((d) => d.id === patient.assigned_doctor);
+      const doctor = doctors.find((d) => d.id === patient.assigned_doctor_id);
       if (doctor) {
         studio = doctor.study;
       }
@@ -866,6 +939,81 @@ export class SegreteriaPage implements OnInit {
       position: 'bottom',
     });
     await toast.present();
+  }
+
+  // Funzioni per pazienti completati
+
+  async sendSmsMessage(patient: Patient) {
+    // Invia SMS tramite webhook Macrodroid
+    if (!patient.phone) {
+      this.presentToast(
+        `${patient.full_name} non ha un numero di telefono registrato`,
+        'danger',
+      );
+      return;
+    }
+
+    const baseWebhook =
+      'https://trigger.macrodroid.com/d8ce5146-3a3d-4523-96af-60eccbfcbca8/sms_pazienti';
+    const landingBase = 'https://www.allmedfisio.it/recensione/';
+
+    // Rimuove la data di nascita dal nome: es. "Paolo Zuccaro (30/10/1992)" -> "Paolo Zuccaro"
+    const cleanedName = patient.full_name
+      .replace(/\s*\(\d{2}\/\d{2}\/\d{4}\)\s*$/, '')
+      .trim();
+
+    const encodedName = encodeURIComponent(cleanedName);
+    const landingLink = `${landingBase}?n=${encodedName}`;
+    const webhookUrl = `${baseWebhook}?nome=${encodedName}&numero=${encodeURIComponent(patient.phone)}&link=${encodeURIComponent(landingLink)}`;
+
+    console.log('Webhook SMS URL:', webhookUrl);
+    console.log('Landing link generato:', landingLink);
+
+    try {
+      const res = await fetch(webhookUrl, { method: 'GET' });
+      if (!res.ok) {
+        throw new Error(`Webhook ha risposto con status ${res.status}`);
+      }
+
+      this.presentToast(`SMS a ${patient.full_name} inviato!`, 'success');
+
+      // segna come inviato per colorare il bottone
+      const next = new Set(this.smsSent);
+      next.add(patient.id);
+      this.smsSent = next;
+
+      // OnPush: forza rilettura del template
+      this.cdr.markForCheck();
+    } catch (err: any) {
+      console.error('Errore invio SMS:', err);
+      this.presentToast(
+        `Impossibile inviare SMS a ${patient.full_name}`,
+        'danger',
+      );
+    }
+  }
+
+  isSmsSent(patientId: string): boolean {
+    return this.smsSent.has(patientId);
+  }
+
+  completeCycle(patient: Patient) {
+    // Archivia il paziente e registra la data di fine ciclo
+    this.patientService.archivePatient(patient.id).subscribe(
+      () => {
+        this.presentToast(
+          `Ciclo completato per ${patient.full_name}`,
+          'success',
+        );
+      },
+      (error) => {
+        console.error('Errore archiviazione:', error);
+        this.presentToast(
+          `Errore nell'archiviazione di ${patient.full_name}`,
+          'danger',
+        );
+      },
+    );
   }
 
   // Logout

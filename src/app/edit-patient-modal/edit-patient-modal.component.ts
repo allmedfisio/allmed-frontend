@@ -21,6 +21,7 @@ export class EditPatientModalComponent implements OnInit {
   fullName!: string;
   assignedDoctor!: string;
   appointmentTime!: string;
+  phone: string = '';
   orariDisponibili: string[] = [];
   orarioAppuntamento: string = '';
   doctors: Doctor[] = [];
@@ -29,30 +30,39 @@ export class EditPatientModalComponent implements OnInit {
     private modalCtrl: ModalController,
     private patientService: PatientService,
     private doctorService: DoctorService,
-    private toastCtrl: ToastController
+    private toastCtrl: ToastController,
   ) {}
 
   ngOnInit() {
     // inizializza i form fields con i dati correnti
     this.fullName = this.patientData.full_name;
-    this.assignedDoctor = this.patientData.assigned_doctor || '';
+    this.assignedDoctor = this.patientData.assigned_doctor_name || '';
     this.appointmentTime = this.patientData.appointment_time;
-    
+    this.phone = this.patientData.phone || '';
+
     // Carica la lista dei medici
     this.doctorService.doctors$.subscribe((doctors) => {
       this.doctors = doctors;
     });
 
-    // **estrai HH:mm dalla stringa ISO**
-    const dt = new Date(this.appointmentTime);
-    const hh = this.pad(dt.getHours());
-    const mm = this.pad(dt.getMinutes());
-    this.orarioAppuntamento = `${hh}:${mm}`;
-
-    console.log('orario app: ' + this.orarioAppuntamento);
-
-    // Genera gli orari disponibili
+    // Genera gli orari disponibili PRIMA di estrarre l'orario
     this.generaOrariDisponibili();
+
+    // **estrai HH:mm dalla stringa ISO**
+    if (this.appointmentTime) {
+      const dt = new Date(this.appointmentTime);
+      const hh = this.pad(dt.getHours());
+      const mm = this.pad(dt.getMinutes());
+      this.orarioAppuntamento = `${hh}:${mm}`;
+      console.log('orario app estratto: ' + this.orarioAppuntamento);
+
+      // Se l'orario estratto non è negli orari disponibili, aggiungilo
+      if (!this.orariDisponibili.includes(this.orarioAppuntamento)) {
+        this.orariDisponibili.push(this.orarioAppuntamento);
+        this.orariDisponibili.sort(); // ordina gli orari
+        console.log('Orario aggiunto:', this.orarioAppuntamento);
+      }
+    }
   }
 
   async save() {
@@ -60,19 +70,22 @@ export class EditPatientModalComponent implements OnInit {
     if (this.fullName !== this.patientData.full_name) {
       updates.full_name = this.fullName;
     }
-    if (this.assignedDoctor !== this.patientData.assigned_doctor) {
-      updates.assigned_doctor = this.assignedDoctor;
+    if (this.assignedDoctor !== this.patientData.assigned_doctor_name) {
+      updates.assigned_doctor_name = this.assignedDoctor;
     }
     if (this.appointmentTime !== this.patientData.appointment_time) {
       updates.appointment_time = this.appointmentTime;
+    }
+    if ((this.phone || '') !== (this.patientData.phone || '')) {
+      updates.phone = this.phone;
     }
 
     if (Object.keys(updates).length === 0) {
       // niente da salvare
       await this.toastCtrl
         .create({
-          message: 'Nessuna modifica da salvare',
-          duration: 1500,
+          message: 'Non hai modificato nessun dato',
+          duration: 2000,
           color: 'warning',
         })
         .then((t) => t.present());
@@ -86,8 +99,8 @@ export class EditPatientModalComponent implements OnInit {
         next: async () => {
           await this.toastCtrl
             .create({
-              message: 'Paziente aggiornato!',
-              duration: 1500,
+              message: '✓ Dati del paziente aggiornati con successo',
+              duration: 2000,
               color: 'success',
             })
             .then((t) => t.present());
@@ -96,8 +109,8 @@ export class EditPatientModalComponent implements OnInit {
         error: async () => {
           await this.toastCtrl
             .create({
-              message: "Errore durante l'aggiornamento",
-              duration: 1500,
+              message: '⚠ Impossibile salvare le modifiche. Riprova',
+              duration: 2500,
               color: 'danger',
             })
             .then((t) => t.present());
@@ -119,17 +132,20 @@ export class EditPatientModalComponent implements OnInit {
   }
 
   aggiornaDataCompleta() {
-    console.log('orario app: ', this.orarioAppuntamento);
-    const oggi = new Date();
+    console.log('orario app selezionato: ', this.orarioAppuntamento);
+
+    // Estrai la data corrente dal campo appointmentTime (mantieni la data, cambia solo l'ora)
+    const currentDate = new Date(this.appointmentTime);
     const [ore, minuti] = this.orarioAppuntamento.split(':').map(Number);
 
+    // Crea una nuova data mantenendo lo stesso giorno
     const data = new Date(
-      oggi.getFullYear(),
-      oggi.getMonth(),
-      oggi.getDate(),
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      currentDate.getDate(),
       ore,
       minuti,
-      0
+      0,
     );
 
     // formato ISO "locale" (senza spostamento UTC)
@@ -140,7 +156,7 @@ export class EditPatientModalComponent implements OnInit {
     const min = String(data.getMinutes()).padStart(2, '0');
 
     this.appointmentTime = `${yyyy}-${mm}-${dd}T${hh}:${min}:00`;
-    console.log('app time: ', this.appointmentTime);
+    console.log('appointment_time aggiornato: ', this.appointmentTime);
   }
 
   pad(numero: number): string {

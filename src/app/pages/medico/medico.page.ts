@@ -26,7 +26,7 @@ export class MedicoPage implements OnInit, OnDestroy {
     private patientService: PatientService,
     private doctorService: DoctorService,
     private alertCtrl: AlertController,
-    private authService: AuthService
+    private authService: AuthService,
   ) {}
 
   ngOnInit() {
@@ -59,23 +59,23 @@ export class MedicoPage implements OnInit, OnDestroy {
     // Combiniamo pazienti e medici per filtrare per assigned_doctor
     this.sub = combineLatest([
       this.patientService.patients$,
-      this.doctorService.doctors$
+      this.doctorService.doctors$,
     ]).subscribe(([patients, doctors]) => {
       // Trova tutti i medici di questo studio
       const doctorsInStudy = doctors.filter((d) => d.study === this.myStudyId);
       const doctorIds = doctorsInStudy.map((d) => d.id);
-      
+
       // Filtra pazienti assegnati ai medici di questo studio
-      const studyList = patients.filter((p) => 
-        p.assigned_doctor && doctorIds.includes(p.assigned_doctor)
+      const studyList = patients.filter(
+        (p) => p.assigned_doctor_id && doctorIds.includes(p.assigned_doctor_id),
       );
-      
+
       this.currentPatient =
         studyList.find((p) => p.status === 'in_visita') || null;
       const waiting = studyList
         .filter((p) => p.status === 'in_attesa')
         .sort((a, b) =>
-          (a.appointment_time ?? '').localeCompare(b.appointment_time ?? '')
+          (a.appointment_time ?? '').localeCompare(b.appointment_time ?? ''),
         );
       this.nextPatient = waiting.length ? waiting[0] : null;
     });
@@ -117,14 +117,14 @@ export class MedicoPage implements OnInit, OnDestroy {
       // 2️⃣ Cambia lo stato del paziente (attesa ➜ in_visita)
       await firstValueFrom(this.patientService.callPatient(patientToCall.id));
 
-      // 3️⃣ Usa assigned_doctor direttamente dal paziente
-      if (patientToCall.assigned_doctor) {
+      // 3️⃣ Usa assigned_doctor_id direttamente dal paziente
+      if (patientToCall.assigned_doctor_id) {
         // 4️⃣ Aggiorna last_patient con il nome "congelato"
         await firstValueFrom(
           this.doctorService.updateLastPatient(
-            patientToCall.assigned_doctor,
-            patientToCall.full_name
-          )
+            patientToCall.assigned_doctor_id,
+            patientToCall.full_name,
+          ),
         );
       }
       /* 5️⃣ Il subscribe alla lista pazienti continuerà ad aggiornare

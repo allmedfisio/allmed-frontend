@@ -54,11 +54,9 @@
                 <ion-col>
                   <!-- se c'è un currentPatient -->
                   <ng-container *ngIf="currentPatient; else noneInVisita">
-                    <h2 class="patient-name">
-                      {{ currentPatient?.full_name }}
-                    </h2>
+                    <h2 class="patient-name">{{ currentPatient.full_name }}</h2>
                     <h3 class="app">
-                      Appuntamento: {{ currentPatient?.appointment_time |
+                      Appuntamento: {{ currentPatient.appointment_time |
                       date:'HH:mm' }}
                     </h3>
                   </ng-container>
@@ -88,9 +86,9 @@
                 <ion-col>
                   <!-- se c'è un nextPatient -->
                   <ng-container *ngIf="nextPatient; else noneInAttesa">
-                    <h2 class="patient-name">{{ nextPatient?.full_name }}</h2>
+                    <h2 class="patient-name">{{ nextPatient.full_name }}</h2>
                     <h3 class="app">
-                      Appuntamento: {{ nextPatient?.appointment_time |
+                      Appuntamento: {{ nextPatient.appointment_time |
                       date:'HH:mm' }}
                     </h3>
                   </ng-container>

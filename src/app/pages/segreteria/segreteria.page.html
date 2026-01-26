@@ -12,6 +12,14 @@
       <ion-button expand="block" (click)="fileInput.click()">
         <ion-icon slot="icon-only" name="cloud-upload-outline"></ion-icon>
       </ion-button>
+      <ion-badge
+        class="follow-up-badge"
+        color="secondary"
+        *ngIf="followUpCount$ | async as count"
+        [hidden]="count === 0"
+      >
+        {{ count }}
+      </ion-badge>
     </ion-buttons>
 
     <ion-title>Segreteria</ion-title>
@@ -62,6 +70,9 @@
             </ion-segment-button>
             <ion-segment-button value="prenotato">
               <ion-label>Prenotati</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="completato">
+              <ion-label>Completati</ion-label>
             </ion-segment-button>
           </ion-segment>
         </ion-col>
@@ -208,12 +219,7 @@
                 <ng-container
                   *ngFor="let group of day.groups; trackBy: trackByStudy"
                 >
-                  <ng-container *ngIf="isNumber(group.study); else plainLabel2">
-                    <h3 class="studio">Studio {{ group.study }}</h3>
-                  </ng-container>
-                  <ng-template #plainLabel2>
-                    <h3 class="studio">{{ group.study }}</h3>
-                  </ng-template>
+                  <!-- Nessuna intestazione di studio nella vista per giorno -->
                   <ion-card
                     class="card-soft"
                     *ngFor="let patient of group.patients; trackBy: trackByPatientId"
@@ -261,6 +267,59 @@
                 </ng-container>
               </ng-container>
             </ng-template>
+          </div>
+          <div *ngIf="segment === 'completato'">
+            <h2 class="section-title">Visite completate</h2>
+            <ng-container
+              *ngFor="let group of pdata.completed; trackBy: trackByStudy"
+            >
+              <h3 class="studio">{{ group.study }}</h3>
+              <ion-card
+                class="card-soft"
+                *ngFor="let patient of group.patients; trackBy: trackByPatientId"
+              >
+                <ion-card-content>
+                  <ion-grid fixed>
+                    <ion-row>
+                      <ion-col size="9">
+                        <h2 class="name">{{ patient.full_name }}</h2>
+                        <h2 class="study">
+                          Numero: {{ patient.assigned_number }}
+                        </h2>
+                        <h2 class="app">
+                          Orario appuntamento: {{ patient.appointment_time |
+                          date:'HH:mm'}}
+                        </h2>
+                      </ion-col>
+                      <ion-col size="3">
+                        <ion-button
+                          size="small"
+                          [style.--background]="isSmsSent(patient.id) ? 'var(--ion-color-green)' : 'var(--ion-color-secondary)'"
+                          [style.--color]="isSmsSent(patient.id) ? 'var(--ion-color-success-contrast)' : 'var(--ion-color-primary-contrast)'"
+                          (click)="sendSmsMessage(patient)"
+                        >
+                          <ion-icon name="mail-outline"></ion-icon>
+                        </ion-button>
+                        <ion-button
+                          size="small"
+                          color="primary"
+                          (click)="completeCycle(patient)"
+                        >
+                          <ion-icon name="checkmark-circle-outline"></ion-icon>
+                        </ion-button>
+                        <ion-button
+                          size="small"
+                          color="danger"
+                          (click)="removePatient(patient.id)"
+                        >
+                          <ion-icon name="trash-outline"></ion-icon>
+                        </ion-button>
+                      </ion-col>
+                    </ion-row>
+                  </ion-grid>
+                </ion-card-content>
+              </ion-card>
+            </ng-container>
           </div>
         </ion-col>
         <ion-col size-md="2" class="divider-col">
@@ -318,4 +377,7 @@
       style="display: block; margin: auto; padding-top: 2rem"
     ></ion-spinner>
   </ng-template>
+
+  <!-- Version Footer -->
+  <div class="version-footer">v{{ appVersion }}</div>
 </ion-content>

@@ -51,7 +51,9 @@
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
 
-  box-shadow: 0 0 10px rgba(32, 43, 84, 0.25), 0 4px 30px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 0 10px rgba(32, 43, 84, 0.25),
+    0 4px 30px rgba(0, 0, 0, 0.1);
 
   animation: fadeInScale 0.3s ease forwards;
 }
@@ -122,4 +124,15 @@ ion-toolbar {
   height: 75px !important;
   min-height: 75px !important;
   text-align: center;
+}
+
+/* Toast sizing: make box slightly larger than message content */
+ion-toast {
+  --width: auto;
+  --max-width: max-content;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 12px;
+  --padding-bottom: 12px;
+  --border-radius: 10px;
 }

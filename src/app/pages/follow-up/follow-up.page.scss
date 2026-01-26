@@ -1,0 +1,56 @@
+.follow-up-content {
+  --background: #f5f7fa;
+}
+
+/* Layout identico alle card di segreteria */
+.patients-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.card-soft {
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.name {
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--ion-color-primary);
+}
+
+.study {
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--ion-color-primary);
+}
+
+.app {
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--ion-color-primary);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: var(--ion-color-primary);
+  font-size: 1.1rem;
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+@media (max-width: 1024px) {
+  .patients-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .patients-grid {
+    grid-template-columns: 1fr;
+  }
+}

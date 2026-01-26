@@ -13,16 +13,18 @@ import { DateFilterModalComponent } from '../date-filter-modal/date-filter-modal
 })
 export class AddPatientModalComponent implements OnInit {
   fullName: string = '';
+  phone: string = '';
   assignedDoctor!: string;
   appointmentTime!: string;
   patientStatus: 'in_attesa' | 'prenotato' = 'in_attesa';
   orariDisponibili: string[] = [];
   doctors: Doctor[] = [];
+  activeDoctorsSet = new Set<string>(); // nomi dei medici attivi
 
   constructor(
     private patientService: PatientService,
     private doctorService: DoctorService,
-    private modalController: ModalController
+    private modalController: ModalController,
   ) {}
 
   ngOnInit() {
@@ -32,12 +34,48 @@ export class AddPatientModalComponent implements OnInit {
       this.doctors = doctors;
     });
     // Aggiorna anche quando cambiano (in caso di nuovi medici aggiunti)
+    // e registra i medici attivi
     this.doctorService.doctors$.subscribe((doctors) => {
       // Unisci con quelli già caricati per evitare duplicati
-      const existingIds = new Set(this.doctors.map(d => d.id));
-      const newDoctors = doctors.filter(d => !existingIds.has(d.id));
+      const existingIds = new Set(this.doctors.map((d) => d.id));
+      const newDoctors = doctors.filter((d) => !existingIds.has(d.id));
       this.doctors = [...this.doctors, ...newDoctors];
+      // Traccia quali medici sono attivi (per validazione in_attesa)
+      this.activeDoctorsSet.clear();
+      doctors.forEach((d) => this.activeDoctorsSet.add(d.name));
     });
+  }
+
+  // Ritorna TUTTI i medici disponibili nel sistema ordinati per cognome
+  get availableDoctors(): Doctor[] {
+    // Mostra sempre TUTTI i medici nel dropdown
+    // La validazione dello status viene fatta nel bottone via isValidDoctorSelection()
+    return [...this.doctors].sort((a, b) => {
+      const surnameA = this.extractSurname(a.name);
+      const surnameB = this.extractSurname(b.name);
+      return surnameA.localeCompare(surnameB);
+    });
+  }
+
+  // Estrae il cognome ignorando i prefissi (Dott., Dott.ssa, D.O.)
+  private extractSurname(fullName: string): string {
+    // Rimuove prefissi comuni
+    let cleaned = fullName.replace(/^(Dott\.ssa|Dott\.|D\.O\.)\s*/i, '').trim();
+    // Il cognome è la prima parola dopo aver rimosso i prefissi
+    const parts = cleaned.split(/\s+/);
+    return parts[0] || fullName;
+  }
+
+  // Valida se il medico selezionato è valido per lo status corrente
+  isValidDoctorSelection(): boolean {
+    if (!this.assignedDoctor) return false;
+    if (this.patientStatus === 'prenotato') {
+      // Prenotato: il medico deve esistere nella lista completa
+      return this.doctors.some((d) => d.name === this.assignedDoctor);
+    } else {
+      // In attesa: il medico deve essere attivo
+      return this.activeDoctorsSet.has(this.assignedDoctor);
+    }
   }
 
   dismiss() {
@@ -78,7 +116,8 @@ export class AddPatientModalComponent implements OnInit {
         this.fullName,
         this.assignedDoctor,
         this.appointmentTime,
-        this.patientStatus
+        this.patientStatus,
+        this.phone,
       )
       .pipe()
       .subscribe({

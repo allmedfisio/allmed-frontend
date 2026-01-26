@@ -47,9 +47,9 @@ export class DoctorService {
       });
   }
 
-  /** Ottiene tutti i medici (utile per dropdown, inclusi quelli eventualmente non attivi) */
+  /** Ottiene tutti i medici (inclusi quelli non attivi) dalla master list */
   getAllDoctors(): Observable<Doctor[]> {
-    return this.http.get<Doctor[]>(`${environment.apiUrl}/doctors/active-doctors`);
+    return this.http.get<Doctor[]>(`${environment.apiUrl}/doctors/all-doctors`);
   }
 
   /** Ottiene la lista di tutti i nomi dei medici disponibili dalla collection doctor-list */
@@ -61,7 +61,7 @@ export class DoctorService {
   addDoctorName(name: string): Observable<{ message: string; name: string }> {
     return this.http.post<{ message: string; name: string }>(
       `${environment.apiUrl}/doctors/doctor-list`,
-      { name }
+      { name },
     );
   }
 
@@ -91,7 +91,7 @@ export class DoctorService {
       .pipe(
         tap(() => {
           this.loadDoctors();
-        })
+        }),
       );
   }
 }
