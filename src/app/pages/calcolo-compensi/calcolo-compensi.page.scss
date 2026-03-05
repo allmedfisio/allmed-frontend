@@ -1,0 +1,151 @@
+// ---- Page background (stesso follow-up) ----
+.compensi-content {
+  --background: #f5f7fa;
+}
+
+// ---- Layout due colonne ----
+.calculators-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.calc-col {
+  flex: 1 1 300px;
+  min-width: 280px;
+}
+
+// ---- Card (identica a follow-up / segreteria) ----
+.card-soft {
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  margin-bottom: 16px;
+}
+
+.results-card {
+  margin-top: 0;
+}
+
+// ---- Titolo sezione calcolatore (usa h2 come follow-up) ----
+.calc-section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--ion-color-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  margin-top: 0;
+
+  ion-icon {
+    color: var(--ion-color-secondary);
+    font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+}
+
+.calc-section-sub {
+  font-size: 0.85rem;
+  color: var(--ion-color-medium);
+  margin: 0 0 16px 0;
+}
+
+// ---- Inputs ----
+.input-list {
+  padding: 0;
+}
+
+.input-item {
+  --border-radius: 10px;
+  --background: #f5f7fa;
+  --padding-start: 12px;
+  margin-bottom: 8px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.input-icon {
+  color: var(--ion-color-secondary);
+  font-size: 1.2rem;
+}
+
+// ---- Bottoni ----
+.btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+
+  .calc-btn {
+    flex: 2;
+  }
+
+  .clear-btn {
+    flex: 1;
+  }
+}
+
+// ---- Risultati: pattern h2 identico a follow-up ----
+.results-section-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ion-color-medium);
+  margin: 0 0 12px 0;
+}
+
+.result-row-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(10, 61, 102, 0.08);
+
+  &.last {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+// h2 risultato label — stesso pattern .study del follow-up
+.res-label {
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--ion-color-primary);
+  flex: 1;
+  margin: 0;
+}
+
+// h2 risultato valore — bold, colore variante
+.res-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--ion-color-primary);
+  margin: 0;
+  white-space: nowrap;
+}
+
+.res-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+// Colori per primary/secondary
+.primary-col {
+  color: var(--ion-color-primary);
+}
+
+.secondary-col {
+  color: var(--ion-color-secondary);
+}
+
+@media (max-width: 768px) {
+  .calculators-row {
+    flex-direction: column;
+  }
+
+  .calc-col {
+    width: 100%;
+  }
+}

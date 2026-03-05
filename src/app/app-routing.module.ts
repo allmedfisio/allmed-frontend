@@ -67,6 +67,17 @@ const routes: Routes = [
       roles: ['admin', 'segreteria'],
     },
   },
+  {
+    path: 'calcolo-compensi',
+    loadChildren: () =>
+      import('./pages/calcolo-compensi/calcolo-compensi.module').then(
+        (m) => m.CalcoloCompensiPageModule,
+      ),
+    canActivate: [AuthGuardService],
+    data: {
+      roles: ['admin', 'segreteria'],
+    },
+  },
 ];
 
 @NgModule({

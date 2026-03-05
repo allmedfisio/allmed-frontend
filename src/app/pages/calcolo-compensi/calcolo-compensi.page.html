@@ -1,0 +1,240 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-button fill="clear" (click)="goBack()">
+        <ion-img
+          src="assets/logo-clinica.png"
+          style="width: 70px; height: 70px"
+        ></ion-img>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Calcolo Compensi</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding compensi-content">
+  <div class="calculators-row">
+    <!-- ============================
+         CALCOLATORE 1: Trattenuta
+         ============================ -->
+    <div class="calc-col">
+      <ion-card class="card-soft">
+        <ion-card-content>
+          <h2 class="calc-section-title">
+            <ion-icon name="calculator-outline"></ion-icon>
+            Calcolo Trattenuta Centro
+          </h2>
+          <p class="calc-section-sub">
+            Inserisci i dati della prestazione per calcolare la ripartizione
+          </p>
+
+          <ion-list lines="none" class="input-list">
+            <ion-item class="input-item">
+              <ion-icon
+                name="cash-outline"
+                slot="start"
+                class="input-icon"
+              ></ion-icon>
+              <ion-label position="stacked">Valore prestazione (€)</ion-label>
+              <ion-input
+                type="number"
+                [(ngModel)]="valorePrestazione"
+                placeholder="es. 400"
+                min="0"
+                inputmode="decimal"
+              ></ion-input>
+            </ion-item>
+            <ion-item class="input-item">
+              <ion-icon
+                name="repeat-outline"
+                slot="start"
+                class="input-icon"
+              ></ion-icon>
+              <ion-label position="stacked">Numero sedute</ion-label>
+              <ion-input
+                type="number"
+                [(ngModel)]="numeroSedute"
+                placeholder="es. 10"
+                min="1"
+                inputmode="numeric"
+              ></ion-input>
+            </ion-item>
+            <ion-item class="input-item">
+              <ion-icon
+                name="trending-down-outline"
+                slot="start"
+                class="input-icon"
+              ></ion-icon>
+              <ion-label position="stacked"
+                >% trattenuta sul professionista</ion-label
+              >
+              <ion-input
+                type="number"
+                [(ngModel)]="percentualeTrattenuta"
+                placeholder="es. 30"
+                min="0"
+                max="100"
+                inputmode="decimal"
+              ></ion-input>
+            </ion-item>
+          </ion-list>
+
+          <div class="btn-row">
+            <ion-button
+              expand="block"
+              color="primary"
+              (click)="calcolaSpettanza()"
+              class="calc-btn"
+            >
+              <ion-icon slot="start" name="calculator-outline"></ion-icon>
+              Calcola
+            </ion-button>
+            <ion-button
+              expand="block"
+              fill="outline"
+              color="medium"
+              (click)="svuotaCal1()"
+              class="clear-btn"
+            >
+              <ion-icon slot="start" name="trash-outline"></ion-icon>
+              Svuota
+            </ion-button>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Risultati cal1 FUORI dalla card -->
+      <ion-card
+        class="card-soft results-card"
+        *ngIf="trattenutaCentro !== null"
+      >
+        <ion-card-content>
+          <h2 class="results-section-label">Risultati</h2>
+          <div class="result-row-item">
+            <ion-icon
+              name="business-outline"
+              class="res-icon secondary-col"
+            ></ion-icon>
+            <h2 class="res-label">Trattenuta ALLMEDfisio</h2>
+            <h2 class="res-value secondary-col">
+              {{ trattenutaCentro | currency:'EUR':'symbol':'1.2-2' }}
+            </h2>
+          </div>
+          <div class="result-row-item">
+            <ion-icon
+              name="person-outline"
+              class="res-icon primary-col"
+            ></ion-icon>
+            <h2 class="res-label">Compenso professionista (tot.)</h2>
+            <h2 class="res-value primary-col">
+              {{ compensoProfessionistaTotale | currency:'EUR':'symbol':'1.2-2'
+              }}
+            </h2>
+          </div>
+          <div class="result-row-item last">
+            <ion-icon
+              name="layers-outline"
+              class="res-icon primary-col"
+            ></ion-icon>
+            <h2 class="res-label">Compenso per seduta</h2>
+            <h2 class="res-value primary-col">
+              {{ compensoPerSeduta | currency:'EUR':'symbol':'1.2-2' }}
+            </h2>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- ============================
+         CALCOLATORE 2: Per sedute
+         ============================ -->
+    <div class="calc-col">
+      <ion-card class="card-soft">
+        <ion-card-content>
+          <h2 class="calc-section-title">
+            <ion-icon name="layers-outline"></ion-icon>
+            Compenso per Numero di Sedute
+          </h2>
+          <p class="calc-section-sub">
+            Calcola il compenso totale in base al costo per seduta
+          </p>
+
+          <ion-list lines="none" class="input-list">
+            <ion-item class="input-item">
+              <ion-icon
+                name="cash-outline"
+                slot="start"
+                class="input-icon"
+              ></ion-icon>
+              <ion-label position="stacked">Costo a seduta (€)</ion-label>
+              <ion-input
+                type="number"
+                [(ngModel)]="costoASeduta"
+                placeholder="es. 28"
+                min="0"
+                inputmode="decimal"
+              ></ion-input>
+            </ion-item>
+            <ion-item class="input-item">
+              <ion-icon
+                name="repeat-outline"
+                slot="start"
+                class="input-icon"
+              ></ion-icon>
+              <ion-label position="stacked">Numero sedute</ion-label>
+              <ion-input
+                type="number"
+                [(ngModel)]="numeroCal2"
+                placeholder="es. 5"
+                min="1"
+                inputmode="numeric"
+              ></ion-input>
+            </ion-item>
+          </ion-list>
+
+          <div class="btn-row">
+            <ion-button
+              expand="block"
+              color="primary"
+              (click)="calcolaPerSedute()"
+              class="calc-btn"
+            >
+              <ion-icon slot="start" name="calculator-outline"></ion-icon>
+              Calcola
+            </ion-button>
+            <ion-button
+              expand="block"
+              fill="outline"
+              color="medium"
+              (click)="svuotaCal2()"
+              class="clear-btn"
+            >
+              <ion-icon slot="start" name="trash-outline"></ion-icon>
+              Svuota
+            </ion-button>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Risultato cal2 FUORI dalla card -->
+      <ion-card
+        class="card-soft results-card"
+        *ngIf="compensoTotaleCal2 !== null"
+      >
+        <ion-card-content>
+          <h2 class="results-section-label">Risultato</h2>
+          <div class="result-row-item last">
+            <ion-icon
+              name="person-outline"
+              class="res-icon primary-col"
+            ></ion-icon>
+            <h2 class="res-label">Compenso totale ({{ numeroCal2 }} sedute)</h2>
+            <h2 class="res-value primary-col">
+              {{ compensoTotaleCal2 | currency:'EUR':'symbol':'1.2-2' }}
+            </h2>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </div>
+  </div>
+</ion-content>
