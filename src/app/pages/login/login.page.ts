@@ -34,7 +34,7 @@ export class LoginPage {
         }
       },
       error: (err) => {
-        this.errorMessage = err.error?.error || 'Errore di login';
+        this.errorMessage = err.error?.detail || err.error?.error || 'Errore di login';
       },
     });
   }
