@@ -57,6 +57,13 @@ export class DoctorService {
     return this.http.get<string[]>(`${environment.apiUrl}/doctors/doctor-list`);
   }
 
+  /** Ottiene la lista di tutti i nomi dei medici con le rispettive branche */
+  getDoctorListBranches(): Observable<{ name: string; branch: string | null }[]> {
+    return this.http.get<{ name: string; branch: string | null }[]>(
+      `${environment.apiUrl}/doctors/doctor-list-branches`,
+    );
+  }
+
   /** Aggiunge un nuovo nome alla lista dei medici disponibili */
   addDoctorName(name: string): Observable<{ message: string; name: string }> {
     return this.http.post<{ message: string; name: string }>(

@@ -78,6 +78,17 @@ const routes: Routes = [
       roles: ['admin', 'segreteria'],
     },
   },
+  {
+    path: 'business-analytics',
+    loadChildren: () =>
+      import('./pages/business-analytics/business-analytics.module').then(
+        (m) => m.BusinessAnalyticsPageModule,
+      ),
+    canActivate: [AuthGuardService],
+    data: {
+      roles: ['admin'],
+    },
+  },
 ];
 
 @NgModule({

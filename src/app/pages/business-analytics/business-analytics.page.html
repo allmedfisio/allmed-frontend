@@ -1,0 +1,572 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon slot="icon-only" name="arrow-back-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Analisi Aziendale</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="analytics-content">
+
+  <!-- ═══════════ TAB BAR ═══════════ -->
+  <div class="tab-bar">
+    <ion-segment [(ngModel)]="activeTab" (ionChange)="switchTab($event.detail.value)" scrollable>
+      <ion-segment-button *ngFor="let tab of tabs" [value]="tab.id">
+        <ion-icon [name]="tab.icon"></ion-icon>
+        <ion-label>{{ tab.label }}</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+  </div>
+
+  <!-- ═══════════ PERIOD FILTER BAR ═══════════ -->
+  <div class="period-bar" *ngIf="activeTab !== 'data'">
+    <ion-segment [(ngModel)]="period" (ionChange)="onPeriodChange()">
+      <ion-segment-button value="month"><ion-label>Mese</ion-label></ion-segment-button>
+      <ion-segment-button value="quarter"><ion-label>Trimestre</ion-label></ion-segment-button>
+      <ion-segment-button value="year"><ion-label>Anno</ion-label></ion-segment-button>
+    </ion-segment>
+    <select class="period-select" [(ngModel)]="selectedYear" (change)="onPeriodChange()">
+      <option *ngFor="let y of years" [value]="y">{{ y }}</option>
+    </select>
+    <select class="period-select" *ngIf="period === 'month'" [(ngModel)]="selectedMonth" (change)="onPeriodChange()">
+      <option *ngFor="let m of [1,2,3,4,5,6,7,8,9,10,11,12]" [value]="m">{{ m }}</option>
+    </select>
+    <select class="period-select" *ngIf="period === 'quarter'" [(ngModel)]="selectedQuarter" (change)="onPeriodChange()">
+      <option [value]="1">Q1</option><option [value]="2">Q2</option><option [value]="3">Q3</option><option [value]="4">Q4</option>
+    </select>
+    <!-- YoY toggle (solo tab fatturato) -->
+    <ion-item lines="none" *ngIf="activeTab === 'revenue'" class="yoy-toggle">
+      <ion-label>YoY</ion-label>
+      <ion-toggle [(ngModel)]="showYoY" (ionChange)="loadRevenueTrend()"></ion-toggle>
+    </ion-item>
+  </div>
+
+  <!-- ═══════════ LOADING ═══════════ -->
+  <div class="loading-overlay" *ngIf="loading">
+    <ion-spinner name="crescent"></ion-spinner>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       TAB: DASHBOARD
+       ═══════════════════════════════════════ -->
+  <div class="tab-content" *ngIf="activeTab === 'dashboard' && !loading">
+    <ng-container *ngIf="overview">
+      <!-- KPI Cards -->
+      <div class="kpi-grid kpi-grid-6">
+        <kpi-card label="Fatturato Totale" [value]="overview.kpi.totalRevenue" format="currency" color="primary" icon="cash-outline" [delta]="overview.kpi.deltaRevenue"></kpi-card>
+        <kpi-card label="Ricavo Realizzato" [value]="overview.kpi.realizedRevenue" format="currency" color="secondary" icon="checkmark-circle-outline"></kpi-card>
+        <kpi-card label="Margine Clinica" [value]="overview.kpi.marginPct" format="percentage" color="success" icon="trending-up-outline"></kpi-card>
+        <kpi-card label="Ticket Medio" [value]="overview.kpi.avgTicket" format="currency" color="primary" icon="pricetag-outline" [delta]="overview.kpi.deltaTicket"></kpi-card>
+        <kpi-card label="Pazienti Unici" [value]="overview.kpi.uniquePatients" format="number" color="secondary" icon="people-outline" [delta]="overview.kpi.deltaPatients"></kpi-card>
+        <kpi-card label="N. Visite" [value]="overview.kpi.totalVisits" format="number" color="primary" icon="medkit-outline"></kpi-card>
+      </div>
+
+      <!-- Mini charts row -->
+      <div class="charts-row">
+        <chart-card title="Trend Fatturato {{ selectedYear }}" class="chart-2col" height="260px">
+          <canvas *ngIf="dashRevenueChart" baseChart
+            [data]="dashRevenueChart" [options]="lineOptions" type="line">
+          </canvas>
+        </chart-card>
+        <chart-card title="Composizione Ricavi" class="chart-1col" height="260px">
+          <canvas *ngIf="dashBranchChart" baseChart
+            [data]="dashBranchChart" [options]="doughnutOptions" type="doughnut">
+          </canvas>
+        </chart-card>
+      </div>
+      <div class="charts-row">
+        <chart-card title="Top 5 Professionisti" class="chart-2col" height="260px">
+          <canvas *ngIf="dashProfChart" baseChart
+            [data]="dashProfChart" [options]="barOptions" type="bar">
+          </canvas>
+        </chart-card>
+        <chart-card title="Punti di Forza / Debolezza" class="chart-1col" height="260px">
+          <div class="strengths-list">
+            <h4 class="strength-title success">🔺 Top 3</h4>
+            <div class="strength-row" *ngFor="let s of overview.strengths.top">
+              <span class="strength-name">{{ s.name }}</span>
+              <span class="strength-val">{{ fc(s.revenue) }}</span>
+            </div>
+            <h4 class="strength-title danger" style="margin-top:12px">🔻 Bottom 3</h4>
+            <div class="strength-row" *ngFor="let s of overview.strengths.bottom">
+              <span class="strength-name">{{ s.name }}</span>
+              <span class="strength-val">{{ fc(s.revenue) }}</span>
+            </div>
+          </div>
+        </chart-card>
+      </div>
+    </ng-container>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       TAB: FATTURATO
+       ═══════════════════════════════════════ -->
+  <div class="tab-content" *ngIf="activeTab === 'revenue' && !loading">
+    <ng-container *ngIf="revenueTrend">
+      <div class="kpi-grid kpi-grid-4">
+        <kpi-card label="Fatturato Annuo" [value]="revenueTrend.totals.total" format="currency" color="primary"></kpi-card>
+        <kpi-card label="Media Mensile" [value]="revenueTrend.totals.avgMonthly" format="currency" color="secondary"></kpi-card>
+        <kpi-card label="Contratti (Cicli)" [value]="revenueTrend.totals.contract" format="currency" color="primary"></kpi-card>
+        <kpi-card label="Realizzato" [value]="revenueTrend.totals.realized" format="currency" color="secondary"></kpi-card>
+      </div>
+
+      <chart-card title="Trend Mensile {{ selectedYear }}" height="320px">
+        <canvas *ngIf="revenueLineChart" baseChart
+          [data]="revenueLineChart" [options]="lineOptions" type="line">
+        </canvas>
+      </chart-card>
+
+      <chart-card *ngIf="revenueYoYChart" title="Confronto Anno Precedente" height="300px" style="margin-top:16px">
+        <canvas baseChart [data]="revenueYoYChart" [options]="barOptions" type="bar"></canvas>
+      </chart-card>
+
+      <!-- Data table -->
+      <div class="data-card" style="margin-top:16px">
+        <h3 class="card-title">Dettaglio Mensile</h3>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Mese</th><th>Contratti</th><th>Realizzato</th><th>Totale</th>
+                <th>Ticket Medio</th><th>Visite</th><th>Pazienti</th><th>Margine %</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let m of revenueTrend.trend">
+                <td><strong>{{ m.month.slice(5) }}/{{ m.month.slice(0,4) }}</strong></td>
+                <td>{{ fc(m.contract) }}</td>
+                <td>{{ fc(m.realized) }}</td>
+                <td><strong>{{ fc(m.total) }}</strong></td>
+                <td>{{ fc(m.avgTicket) }}</td>
+                <td>{{ m.visits }}</td>
+                <td>{{ m.uniquePatients }}</td>
+                <td>{{ fp(m.marginPct) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       TAB: PRESTAZIONI & BRANCHE
+       ═══════════════════════════════════════ -->
+  <div class="tab-content" *ngIf="activeTab === 'branches' && !loading">
+    <ng-container *ngIf="byBranch">
+      <div class="charts-row">
+        <chart-card title="Fatturato per Branca" class="chart-1col" height="320px">
+          <canvas *ngIf="branchBarChart" baseChart
+            [data]="branchBarChart" [options]="barOptions" type="bar">
+          </canvas>
+        </chart-card>
+        <chart-card title="Composizione %" class="chart-1col" height="320px">
+          <canvas *ngIf="branchDoughnutChart" baseChart
+            [data]="branchDoughnutChart" [options]="doughnutOptions" type="doughnut">
+          </canvas>
+        </chart-card>
+      </div>
+      <chart-card title="Trend Mensile per Branca" height="300px" style="margin-top:16px">
+        <canvas *ngIf="branchTrendChart" baseChart
+          [data]="branchTrendChart" [options]="lineOptions" type="line">
+        </canvas>
+      </chart-card>
+      <div class="data-card" style="margin-top:16px">
+        <h3 class="card-title">Dettaglio Branche</h3>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Branca</th><th>Ricavi</th><th>N. Visite</th><th>Ticket Medio</th>
+                <th>Share</th><th>Margine %</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let b of byBranch.rows">
+                <td><strong>{{ b.name }}</strong></td>
+                <td>{{ fc(b.revenue) }}</td>
+                <td>{{ b.visits }}</td>
+                <td>{{ fc(b.avgTicket) }}</td>
+                <td>{{ fp(b.share) }}</td>
+                <td>{{ fp(b.marginPct) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       TAB: PROFESSIONISTI
+       ═══════════════════════════════════════ -->
+  <div class="tab-content" *ngIf="activeTab === 'professionals' && !loading">
+    <ng-container *ngIf="performance">
+      <div class="charts-row">
+        <chart-card title="Fatturato per Professionista" class="chart-2col" height="320px">
+          <canvas *ngIf="profBarChart" baseChart
+            [data]="profBarChart" [options]="barOptions" type="bar">
+          </canvas>
+        </chart-card>
+        <chart-card title="Ticket Medio vs N. Pazienti" class="chart-1col" height="320px">
+          <canvas *ngIf="profScatterChart" baseChart
+            [data]="profScatterChart" [options]="scatterOptions" type="scatter">
+          </canvas>
+        </chart-card>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; margin:12px 0">
+        <ion-button size="small" color="secondary" (click)="openCompensationModal()">
+          <ion-icon name="settings-outline" slot="start"></ion-icon>
+          Configura Compensi
+        </ion-button>
+      </div>
+
+      <div class="data-card">
+        <h3 class="card-title">Performance Professionisti</h3>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Nome</th><th>Ricavi</th><th>N. Visite</th><th>N. Pazienti</th>
+                <th>Ticket Medio</th><th>Margine %</th><th>Compenso %</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let p of performance.rows">
+                <td><strong>{{ p.name }}</strong></td>
+                <td>{{ fc(p.revenue) }}</td>
+                <td>{{ p.visits }}</td>
+                <td>{{ p.patients }}</td>
+                <td>{{ fc(p.avgTicket) }}</td>
+                <td>{{ fp(p.marginPct) }}</td>
+                <td>
+                  <span [class.compensation-set]="getCompensationFor(p.name) !== null"
+                        [class.compensation-missing]="getCompensationFor(p.name) === null">
+                    {{ getCompensationFor(p.name) !== null ? fp(getCompensationFor(p.name)!) : '—' }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       TAB: PAZIENTI
+       ═══════════════════════════════════════ -->
+  <div class="tab-content" *ngIf="activeTab === 'patients' && !loading">
+    <ng-container *ngIf="patientFlow">
+      <div class="kpi-grid kpi-grid-6">
+        <kpi-card label="Pazienti Totali" [value]="patientFlow.totalPatients" format="number" color="primary" icon="people-outline"></kpi-card>
+        <kpi-card label="Nuovi Pazienti" [value]="patientFlow.newPatients" format="number" color="secondary" icon="person-add-outline"></kpi-card>
+        <kpi-card label="Di Ritorno" [value]="patientFlow.returningPatients" format="number" color="primary" icon="repeat-outline"></kpi-card>
+        <kpi-card label="Tasso di Ritorno" [value]="patientFlow.returnRate" format="percentage" color="success" icon="heart-outline"></kpi-card>
+        <kpi-card label="Visite Medie/Paz" [value]="patientFlow.avgVisitsPerPatient" format="number" color="secondary" icon="analytics-outline"></kpi-card>
+        <kpi-card label="Multi-Servizio" [value]="patientFlow.multiServiceRate" format="percentage" color="primary" icon="layers-outline"></kpi-card>
+      </div>
+
+      <chart-card title="Flusso Pazienti: Nuovi vs Ritornanti" height="300px">
+        <canvas *ngIf="patientFlowChart" baseChart
+          [data]="patientFlowChart" [options]="barOptions" type="bar">
+        </canvas>
+      </chart-card>
+
+      <div class="charts-row" style="margin-top:16px">
+        <chart-card title="Distribuzione Frequenza Visite" class="chart-1col" height="260px">
+          <canvas *ngIf="patientFreqChart" baseChart
+            [data]="patientFreqChart" [options]="doughnutOptions" type="doughnut">
+          </canvas>
+        </chart-card>
+        <chart-card title="Top 10 Pazienti per Spesa" class="chart-1col" height="260px">
+          <div class="top-list">
+            <div class="top-row" *ngFor="let p of patientFlow.topByRevenue; let i = index">
+              <span class="top-rank">#{{ i + 1 }}</span>
+              <span class="top-name">{{ p.name }}</span>
+              <span class="top-val">{{ fc(p.revenue) }}</span>
+            </div>
+          </div>
+        </chart-card>
+      </div>
+    </ng-container>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       TAB: CICLI
+       ═══════════════════════════════════════ -->
+  <div class="tab-content" *ngIf="activeTab === 'cycles' && !loading">
+    <!-- Cycle filters -->
+    <div class="filter-row" style="margin-bottom:12px">
+      <select class="period-select" [(ngModel)]="cycleBranchFilter" (change)="loadCycleAnalysis()">
+        <option value="">Tutte le branche</option>
+        <option *ngFor="let b of branchOptions" [value]="b">{{ b }}</option>
+      </select>
+    </div>
+
+    <ng-container *ngIf="cycleAnalysis">
+      <div class="kpi-grid kpi-grid-6">
+        <kpi-card label="Cicli Totali" [value]="cycleAnalysis.kpi.totalCycles" format="number" color="primary" icon="repeat-outline"></kpi-card>
+        <kpi-card label="Cicli Attivi" [value]="cycleAnalysis.kpi.activeCycles" format="number" color="secondary" icon="time-outline"></kpi-card>
+        <kpi-card label="Completati" [value]="cycleAnalysis.kpi.completedCycles" format="number" color="success" icon="checkmark-circle-outline"></kpi-card>
+        <kpi-card label="Tasso Completamento" [value]="cycleAnalysis.kpi.completionRate" format="percentage" color="primary" icon="pie-chart-outline"></kpi-card>
+        <kpi-card label="Durata Media" [value]="cycleAnalysis.kpi.avgDurationDays" format="number" color="secondary" icon="calendar-outline" [deltaLabel]="'giorni'"></kpi-card>
+        <kpi-card label="Gap Contratti/Realizzato" [value]="cycleAnalysis.kpi.gap" format="currency" color="danger" icon="warning-outline"></kpi-card>
+      </div>
+
+      <div class="kpi-grid kpi-grid-3" style="margin-top:16px">
+        <kpi-card label="Valore Contratti" [value]="cycleAnalysis.kpi.totalContractValue" format="currency" color="primary"></kpi-card>
+        <kpi-card label="Valore Realizzato" [value]="cycleAnalysis.kpi.totalRealized" format="currency" color="secondary"></kpi-card>
+        <kpi-card label="Media Sessioni/Ciclo" [value]="cycleAnalysis.kpi.avgSessions" format="number" color="primary"></kpi-card>
+      </div>
+
+      <chart-card title="Cicli Venduti vs Completati" height="300px" style="margin-top:16px">
+        <canvas *ngIf="cycleMonthlyChart" baseChart
+          [data]="cycleMonthlyChart" [options]="barOptions" type="bar">
+        </canvas>
+      </chart-card>
+
+      <chart-card title="Distribuzione Durata Completamento" height="260px" style="margin-top:16px">
+        <canvas *ngIf="cycleDurationChart" baseChart
+          [data]="cycleDurationChart" [options]="barOptions" type="bar">
+        </canvas>
+      </chart-card>
+
+      <div class="data-card" style="margin-top:16px">
+        <h3 class="card-title">Cicli per Branca</h3>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>Branca</th><th>N. Cicli</th><th>Valore Contratti</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let b of cycleAnalysis.byBranch">
+                <td><strong>{{ b.name }}</strong></td>
+                <td>{{ b.cycles }}</td>
+                <td>{{ fc(b.contractValue) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       TAB: FORECAST
+       ═══════════════════════════════════════ -->
+  <div class="tab-content" *ngIf="activeTab === 'forecast' && !loading">
+    <div class="filter-row">
+      <ion-segment [(ngModel)]="forecastHorizon" (ionChange)="loadForecast()">
+        <ion-segment-button [value]="6"><ion-label>6 Mesi</ion-label></ion-segment-button>
+        <ion-segment-button [value]="12"><ion-label>12 Mesi</ion-label></ion-segment-button>
+      </ion-segment>
+      <select class="period-select" [(ngModel)]="forecastBranch" (change)="loadForecast()">
+        <option value="">Tutte le branche</option>
+        <option *ngFor="let b of branchOptions" [value]="b">{{ b }}</option>
+      </select>
+    </div>
+
+    <ng-container *ngIf="forecast && forecast.forecast.length">
+      <div class="kpi-grid kpi-grid-4">
+        <kpi-card label="Fatturato Previsto 12M" [value]="forecast.kpi.forecastYearRevenue" format="currency" color="primary"></kpi-card>
+        <kpi-card label="Crescita Prevista" [value]="forecast.kpi.projectedGrowth" format="percentage" color="success"></kpi-card>
+        <kpi-card label="Mese di Picco" [value]="forecast.kpi.peakMonth || '—'" format="text" color="secondary"></kpi-card>
+        <kpi-card label="Fatturato Ultimi 12M" [value]="forecast.kpi.lastYearRevenue" format="currency" color="primary"></kpi-card>
+      </div>
+
+      <chart-card title="Forecast {{ forecastHorizon }} Mesi" height="360px">
+        <canvas *ngIf="forecastChart" baseChart
+          [data]="forecastChart" [options]="lineOptions" type="line">
+        </canvas>
+      </chart-card>
+
+      <div class="data-card" style="margin-top:16px">
+        <h3 class="card-title">Dettaglio Previsioni Mensili</h3>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Mese</th><th>Base</th><th>Upper 95%</th><th>Lower 95%</th>
+                <th>Stagionalità</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let f of forecast.forecast">
+                <td><strong>{{ f.month }}</strong></td>
+                <td>{{ fc(f.base) }}</td>
+                <td>{{ fc(f.upper) }}</td>
+                <td>{{ fc(f.lower) }}</td>
+                <td>{{ f.seasonalFactor | number:'1.2-2' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ng-container>
+    <div *ngIf="forecast && !forecast.forecast.length" class="empty-state">
+      <p>Dati insufficienti per il forecast. Carica almeno 2 mesi di dati storici.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       TAB: DATI (Import + Manual Entry)
+       ═══════════════════════════════════════ -->
+  <div class="tab-content" *ngIf="activeTab === 'data' && !loading">
+
+    <!-- SUB-TAB: IMPORT EXCEL -->
+    <ion-card class="data-card">
+      <ion-card-header>
+        <ion-card-title>📥 Importa da Excel</ion-card-title>
+        <ion-card-subtitle>Carica un file .xlsx con i dati delle visite</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        <input type="file" accept=".xls,.xlsx" (change)="onFileSelected($event)" style="margin-bottom:16px" />
+
+        <div *ngIf="importPreview.length" class="import-summary">
+          <span class="summary-badge valid">{{ importSummary.valid }} validi</span>
+          <span class="summary-badge error">{{ importSummary.errors }} errori</span>
+          <span class="summary-badge ambiguous" *ngIf="importSummary.ambiguous">{{ importSummary.ambiguous }} cicli</span>
+          <span class="summary-badge pending" *ngIf="importSummary.decisions">{{ importSummary.decisions }} decisioni</span>
+        </div>
+
+        <!-- Decisioni cicli -->
+        <div *ngIf="importDecisions.length" class="decisions-section">
+          <h4>🔍 Righe con sedute multiple — scegli come importarle:</h4>
+          <div class="decision-row" *ngFor="let d of importDecisions">
+            <div class="decision-info">
+              <strong>{{ importPreview[d.index].Paziente }}</strong> —
+              {{ importPreview[d.index].Professionista }} —
+              {{ importPreview[d.index].Prezzo || importPreview[d.index].prezzo }}€
+              ({{ importPreview[d.index].n_sedute || importPreview[d.index].N_sedute }} sedute)
+            </div>
+            <ion-radio-group [(ngModel)]="d.sessionMode">
+              <ion-item lines="none">
+                <ion-radio value="single" slot="start"></ion-radio>
+                <ion-label>Ciclo unico (contratto)</ion-label>
+              </ion-item>
+              <ion-item lines="none">
+                <ion-radio value="multiple" slot="start"></ion-radio>
+                <ion-label>Visite separate</ion-label>
+              </ion-item>
+            </ion-radio-group>
+          </div>
+        </div>
+
+        <div class="import-actions" *ngIf="importPreview.length">
+          <ion-button color="primary" (click)="confirmImport()" [disabled]="isDecisionPending() || importing">
+            <ion-spinner *ngIf="importing" name="crescent"></ion-spinner>
+            Conferma Import
+          </ion-button>
+          <ion-button color="medium" fill="outline" (click)="cancelImport()">Annulla</ion-button>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- SUB-TAB: MANUAL ENTRY -->
+    <ion-card class="data-card" style="margin-top:20px">
+      <ion-card-header>
+        <ion-card-title>✍️ Inserimento Manuale</ion-card-title>
+        <ion-card-subtitle>Registra una visita singola o un ciclo di sedute</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="manual-form">
+          <!-- Tipo -->
+          <ion-segment [(ngModel)]="manualForm.type" (ionChange)="onManualTypeChange()">
+            <ion-segment-button value="single"><ion-label>Visita Singola</ion-label></ion-segment-button>
+            <ion-segment-button value="cycle"><ion-label>Ciclo</ion-label></ion-segment-button>
+          </ion-segment>
+
+          <!-- Campi -->
+          <ion-item>
+            <ion-label position="stacked">Paziente *</ion-label>
+            <ion-input [(ngModel)]="manualForm.patient_name" placeholder="Nome paziente"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Professionista *</ion-label>
+            <ion-input [(ngModel)]="manualForm.professional_name" placeholder="Nome medico" (ionBlur)="onProfessionalSelect()"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Prestazione</ion-label>
+            <ion-input [(ngModel)]="manualForm.service_name" placeholder="Es. Visita ortopedica"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Branca</ion-label>
+            <ion-select [(ngModel)]="manualForm.branch">
+              <ion-select-option *ngFor="let b of branchOptions" [value]="b">{{ b }}</ion-select-option>
+            </ion-select>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Data</ion-label>
+            <ion-input type="date" [(ngModel)]="manualForm.date"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Prezzo Totale (€) *</ion-label>
+            <ion-input type="number" [(ngModel)]="manualForm.amount" placeholder="0"></ion-input>
+          </ion-item>
+          <ion-item *ngIf="manualForm.type === 'cycle'">
+            <ion-label position="stacked">N. Sedute</ion-label>
+            <ion-input type="number" [(ngModel)]="manualForm.n_sessions" placeholder="10"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">% Compenso Professionista</ion-label>
+            <ion-input type="number" [(ngModel)]="manualForm.professional_pct" placeholder="Auto da configurazione"></ion-input>
+          </ion-item>
+
+          <ion-button expand="block" color="primary" (click)="submitManualEntry()" [disabled]="manualSubmitting" style="margin-top:20px">
+            <ion-spinner *ngIf="manualSubmitting" name="crescent"></ion-spinner>
+            {{ manualForm.type === 'single' ? 'Registra Visita' : 'Crea Ciclo (' + manualForm.n_sessions + ' sedute)' }}
+          </ion-button>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+</ion-content>
+
+<!-- ═══════════════════════════════════════
+     COMPENSATION MODAL
+     ═══════════════════════════════════════ -->
+<div class="modal-backdrop" *ngIf="compensationModalOpen" (click)="closeCompensationModal()"></div>
+<div class="comp-modal" *ngIf="compensationModalOpen">
+  <h3>{{ editingCompensation ? 'Modifica' : 'Nuovo' }} Compenso Medico</h3>
+  <ion-item>
+    <ion-label position="stacked">Nome Professionista</ion-label>
+    <ion-input [(ngModel)]="compensationForm.professional_name" placeholder="Es. Dott. Rossi"></ion-input>
+  </ion-item>
+  <ion-item>
+    <ion-label position="stacked">Percentuale Compenso (%)</ion-label>
+    <ion-input type="number" [(ngModel)]="compensationForm.compensation_pct" placeholder="30"></ion-input>
+  </ion-item>
+  <ion-item>
+    <ion-label position="stacked">Data Inizio Validità</ion-label>
+    <ion-input type="date" [(ngModel)]="compensationForm.effective_from"></ion-input>
+  </ion-item>
+
+  <!-- Lista compensi esistenti -->
+  <div class="comp-list" *ngIf="compensations.length">
+    <h4>Compensi Configurati</h4>
+    <div class="comp-row" *ngFor="let c of compensations">
+      <div class="comp-info">
+        <strong>{{ c.professional_name }}</strong>
+        <span class="comp-pct">{{ c.compensation_pct }}%</span>
+        <span class="comp-date">dal {{ c.effective_from }}</span>
+      </div>
+      <div class="comp-actions">
+        <ion-button size="small" fill="clear" (click)="editCompensation(c)">
+          <ion-icon name="create-outline"></ion-icon>
+        </ion-button>
+        <ion-button size="small" fill="clear" color="danger" (click)="deleteCompensation(c)">
+          <ion-icon name="trash-outline"></ion-icon>
+        </ion-button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-buttons">
+    <ion-button color="primary" (click)="saveCompensation()">Salva</ion-button>
+    <ion-button color="medium" fill="outline" (click)="closeCompensationModal()">Annulla</ion-button>
+  </div>
+</div>

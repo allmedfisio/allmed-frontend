@@ -5,6 +5,7 @@ import { map } from 'rxjs/operators';
 import { Patient, PatientService } from './services/patient.service';
 import { AddPatientModalComponent } from './add-patient-modal/add-patient-modal.component';
 import { AddDoctorModalComponent } from './add-doctor-modal/add-doctor-modal.component';
+import { AuthService } from './services/auth.service';
 
 @Component({
   selector: 'app-root',
@@ -14,10 +15,12 @@ import { AddDoctorModalComponent } from './add-doctor-modal/add-doctor-modal.com
 })
 export class AppComponent {
   followUpCount$!: Observable<number>;
+  isAdmin$!: Observable<boolean>;
 
   constructor(
     private modalController: ModalController,
     private patientService: PatientService,
+    private authService: AuthService,
   ) {
     // Conta i pazienti in follow-up
     this.followUpCount$ = this.patientService.patients$.pipe(
@@ -31,6 +34,10 @@ export class AppComponent {
             new Date(p.last_visit_date) <= threeMonthsAgo,
         ).length;
       }),
+    );
+
+    this.isAdmin$ = this.authService.role$.pipe(
+      map((role) => role === 'admin'),
     );
   }
 

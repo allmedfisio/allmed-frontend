@@ -294,11 +294,11 @@
                       <ion-col size="3">
                         <ion-button
                           size="small"
-                          [style.--background]="isSmsSent(patient.id) ? 'var(--ion-color-green)' : 'var(--ion-color-secondary)'"
-                          [style.--color]="isSmsSent(patient.id) ? 'var(--ion-color-success-contrast)' : 'var(--ion-color-primary-contrast)'"
-                          (click)="sendSmsMessage(patient)"
+                          [style.--background]="isSmsSent(patient.id) ? '#25D366' : 'var(--ion-color-secondary)'"
+                          [style.--color]="isSmsSent(patient.id) ? '#fff' : 'var(--ion-color-primary-contrast)'"
+                          (click)="sendWhatsAppMessage(patient)"
                         >
-                          <ion-icon name="mail-outline"></ion-icon>
+                          <ion-icon name="logo-whatsapp"></ion-icon>
                         </ion-button>
                         <ion-button
                           size="small"

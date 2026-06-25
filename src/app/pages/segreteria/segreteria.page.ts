@@ -33,6 +33,7 @@ import {
   TicketTemplate,
 } from 'src/app/services/template.service';
 import { VersionService } from 'src/app/services/version.service';
+import { WhatsappService } from 'src/app/services/whatsapp.service';
 import * as XLSX from 'xlsx';
 import { DateFilterModalComponent } from 'src/app/date-filter-modal/date-filter-modal.component';
 
@@ -109,6 +110,7 @@ export class SegreteriaPage implements OnInit {
     private injector: Injector,
     private cdr: ChangeDetectorRef,
     private versionService: VersionService,
+    private whatsappService: WhatsappService,
   ) {
     this.appVersion = this.versionService.getVersion();
   }
@@ -943,8 +945,7 @@ export class SegreteriaPage implements OnInit {
 
   // Funzioni per pazienti completati
 
-  async sendSmsMessage(patient: Patient) {
-    // Invia SMS tramite webhook Macrodroid
+  sendWhatsAppMessage(patient: Patient) {
     if (!patient.phone) {
       this.presentToast(
         `${patient.full_name} non ha un numero di telefono registrato`,
@@ -953,44 +954,41 @@ export class SegreteriaPage implements OnInit {
       return;
     }
 
-    const baseWebhook =
-      'https://trigger.macrodroid.com/d8ce5146-3a3d-4523-96af-60eccbfcbca8/sms_pazienti';
-    const landingBase = 'https://www.allmedfisio.it/recensione/';
+    // Pulisci e valida il numero di telefono
+    const rawPhone = patient.phone.replace(/[+\s\-()/]/g, '');
+    const phoneDigits = rawPhone.replace(/\D/g, '');
+    if (phoneDigits.length < 9 || phoneDigits.length > 15) {
+      this.presentToast(
+        `Il numero di ${patient.full_name} non è valido (${patient.phone})`,
+        'danger',
+      );
+      return;
+    }
 
-    // Rimuove la data di nascita dal nome: es. "Paolo Zuccaro (30/10/1992)" -> "Paolo Zuccaro"
     const cleanedName = patient.full_name
       .replace(/\s*\(\d{2}\/\d{2}\/\d{4}\)\s*$/, '')
       .trim();
 
-    const encodedName = encodeURIComponent(cleanedName);
-    const landingLink = `${landingBase}?n=${encodedName}`;
-    const webhookUrl = `${baseWebhook}?nome=${encodedName}&numero=${encodeURIComponent(patient.phone)}&link=${encodeURIComponent(landingLink)}`;
+    const landingLink = `https://www.allmedfisio.it/recensione/?n=${encodeURIComponent(cleanedName)}`;
 
-    console.log('Webhook SMS URL:', webhookUrl);
-    console.log('Landing link generato:', landingLink);
-
-    try {
-      const res = await fetch(webhookUrl, { method: 'GET' });
-      if (!res.ok) {
-        throw new Error(`Webhook ha risposto con status ${res.status}`);
-      }
-
-      this.presentToast(`SMS a ${patient.full_name} inviato!`, 'success');
-
-      // segna come inviato per colorare il bottone
-      const next = new Set(this.smsSent);
-      next.add(patient.id);
-      this.smsSent = next;
-
-      // OnPush: forza rilettura del template
-      this.cdr.markForCheck();
-    } catch (err: any) {
-      console.error('Errore invio SMS:', err);
-      this.presentToast(
-        `Impossibile inviare SMS a ${patient.full_name}`,
-        'danger',
-      );
-    }
+    this.whatsappService
+      .sendMessage(patient.full_name, patient.phone, landingLink)
+      .subscribe({
+        next: () => {
+          this.presentToast(`WhatsApp a ${patient.full_name} inviato!`, 'success');
+          const next = new Set(this.smsSent);
+          next.add(patient.id);
+          this.smsSent = next;
+          this.cdr.markForCheck();
+        },
+        error: (err: any) => {
+          console.error('Errore invio WhatsApp:', err);
+          this.presentToast(
+            `Impossibile inviare WhatsApp a ${patient.full_name}`,
+            'danger',
+          );
+        },
+      });
   }
 
   isSmsSent(patientId: string): boolean {

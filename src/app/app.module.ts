@@ -11,6 +11,7 @@ import { AddPatientModalModule } from './add-patient-modal/add-patient-modal.mod
 import { AddDoctorModalModule } from './add-doctor-modal/add-doctor-modal.module';
 import { ServiceWorkerModule } from '@angular/service-worker';
 import { DateFilterModalModule } from './date-filter-modal/date-filter-modal.module';
+import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { registerLocaleData } from '@angular/common';
 import localeIt from '@angular/common/locales/it';
 
@@ -35,6 +36,7 @@ registerLocaleData(localeIt, 'it-IT');
     }),
   ],
   providers: [
+    provideCharts(withDefaultRegisterables()),
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
     { provide: HTTP_INTERCEPTORS, useClass: TokenInterceptor, multi: true },
     { provide: LOCALE_ID, useValue: 'it-IT' },

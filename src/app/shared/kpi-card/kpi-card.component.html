@@ -1,0 +1,14 @@
+<div class="kpi-card" [class]="'kpi-' + color">
+  <div class="kpi-header">
+    <span class="kpi-label">{{ label }}</span>
+    <ion-icon *ngIf="icon" [name]="icon" class="kpi-icon"></ion-icon>
+  </div>
+  <div class="kpi-body">
+    <span class="kpi-value">{{ formattedValue }}</span>
+    <div *ngIf="delta !== null && delta !== undefined" class="kpi-delta" [class]="deltaClass">
+      <ion-icon [name]="deltaIcon" class="delta-icon"></ion-icon>
+      <span>{{ deltaSign }}{{ delta | number:'1.1-1' }}%</span>
+      <span *ngIf="deltaLabel" class="delta-label">{{ deltaLabel }}</span>
+    </div>
+  </div>
+</div>

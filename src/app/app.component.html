@@ -52,6 +52,16 @@
             <ion-label class="section-title">Calcolo Compensi</ion-label>
           </ion-item>
         </ion-menu-toggle>
+        <ion-menu-toggle auto-hide="false" *ngIf="isAdmin$ | async">
+          <ion-item routerLink="/business-analytics" detail="false">
+            <ion-icon
+              slot="start"
+              name="stats-chart-outline"
+              class="icon"
+            ></ion-icon>
+            <ion-label class="section-title">Analisi Aziendale</ion-label>
+          </ion-item>
+        </ion-menu-toggle>
       </ion-list>
     </ion-content>
   </ion-menu>
