@@ -19,7 +19,7 @@ export class MedicoPage implements OnInit, OnDestroy {
   nextPatient: Patient | null = null;
   myStudyId!: number;
   private sub?: Subscription;
-  userProfile$!: Observable<UserProfile>;
+  userProfile$!: Observable<UserProfile | null>;
 
   constructor(
     private route: ActivatedRoute,

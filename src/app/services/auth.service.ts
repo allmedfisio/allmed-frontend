@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { BehaviorSubject, Observable, of, tap } from 'rxjs';
 import { jwtDecode } from 'jwt-decode';
-import { shareReplay } from 'rxjs/operators';
+import { catchError } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 import { Router } from '@angular/router';
 
@@ -17,8 +17,9 @@ export interface LoginResponse {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  /** Cache in memoria del profilo utente */
-  profile$: Observable<UserProfile>;
+  /** Profilo utente corrente (ri-fetchato ad ogni login) */
+  private _profile$ = new BehaviorSubject<UserProfile | null>(null);
+  public profile$ = this._profile$.asObservable();
 
   //Ruolo corrente, inizialmente letto da localStorage
   private _role$ = new BehaviorSubject<string | null>(
@@ -27,9 +28,20 @@ export class AuthService {
   public role$ = this._role$.asObservable();
 
   constructor(private http: HttpClient, private router: Router) {
-    this.profile$ = this.http
+    // Carica il profilo solo se c'e' gia' un token valido (es. refresh pagina)
+    if (this.isAuthenticated) {
+      this.loadProfile();
+    }
+  }
+
+  /** Ricarica il profilo utente dal backend */
+  private loadProfile(): void {
+    this.http
       .get<UserProfile>(`${environment.apiUrl}/auth/me`)
-      .pipe(shareReplay(1));
+      .pipe(
+        catchError(() => of(null))
+      )
+      .subscribe((profile) => this._profile$.next(profile));
   }
 
   /** Effettua il login, salva token e role */
@@ -53,6 +65,9 @@ export class AuthService {
 
           // Aggiorno il BehaviorSubject
           this._role$.next(ruolo);
+
+          // Ricarico il profilo con il nuovo token
+          this.loadProfile();
         })
       );
   }
@@ -72,6 +87,7 @@ export class AuthService {
     localStorage.removeItem('token');
     localStorage.removeItem('role');
     this._role$.next(null);
+    this._profile$.next(null);
     this.router.navigate(['/login']);
   }
 }

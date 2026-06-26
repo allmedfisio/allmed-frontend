@@ -60,7 +60,7 @@ interface DateGroup {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SegreteriaPage implements OnInit {
-  userProfile$!: Observable<UserProfile>;
+  userProfile$!: Observable<UserProfile | null>;
   patientsByStatus$!: Observable<{
     booked: PatientGroup[];
     waiting: PatientGroup[];
