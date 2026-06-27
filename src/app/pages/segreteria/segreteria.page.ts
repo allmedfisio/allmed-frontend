@@ -25,7 +25,7 @@ import {
   BehaviorSubject,
   combineLatest,
 } from 'rxjs';
-import { map, tap, filter } from 'rxjs/operators';
+import { finalize, map, tap, filter } from 'rxjs/operators';
 import { Doctor, DoctorService } from 'src/app/services/doctor.service';
 import { AuthService, UserProfile } from 'src/app/services/auth.service';
 import {
@@ -88,6 +88,7 @@ export class SegreteriaPage implements OnInit {
   doctorName: string = '';
   doctorStudy: number = NaN;
   smsSent: Set<string> = new Set();
+  sendingWhatsApp: Set<string> = new Set();
 
   // File per upload excel
   file: File | null = null;
@@ -957,9 +958,16 @@ export class SegreteriaPage implements OnInit {
     // Pulisci e valida il numero di telefono
     const rawPhone = patient.phone.replace(/[+\s\-()/]/g, '');
     const phoneDigits = rawPhone.replace(/\D/g, '');
-    if (phoneDigits.length < 9 || phoneDigits.length > 15) {
+    if (phoneDigits.length < 9) {
       this.presentToast(
-        `Il numero di ${patient.full_name} non è valido (${patient.phone})`,
+        `Il numero di ${patient.full_name} è troppo corto (${patient.phone})`,
+        'danger',
+      );
+      return;
+    }
+    if (phoneDigits.length > 15) {
+      this.presentToast(
+        `Il numero di ${patient.full_name} è troppo lungo (${patient.phone})`,
         'danger',
       );
       return;
@@ -971,20 +979,39 @@ export class SegreteriaPage implements OnInit {
 
     const landingLink = `https://www.allmedfisio.it/recensione/?n=${encodeURIComponent(cleanedName)}`;
 
+    // Traccia l'invio in corso per mostrare lo spinner
+    const nextSending = new Set(this.sendingWhatsApp);
+    nextSending.add(patient.id);
+    this.sendingWhatsApp = nextSending;
+
     this.whatsappService
       .sendMessage(patient.full_name, patient.phone, landingLink)
+      .pipe(
+        finalize(() => {
+          const done = new Set(this.sendingWhatsApp);
+          done.delete(patient.id);
+          this.sendingWhatsApp = done;
+          this.cdr.markForCheck();
+        }),
+      )
       .subscribe({
         next: () => {
-          this.presentToast(`WhatsApp a ${patient.full_name} inviato!`, 'success');
-          const next = new Set(this.smsSent);
-          next.add(patient.id);
-          this.smsSent = next;
+          this.presentToast(
+            `WhatsApp a ${patient.full_name} inviato!`,
+            'success',
+          );
+          const nextSent = new Set(this.smsSent);
+          nextSent.add(patient.id);
+          this.smsSent = nextSent;
           this.cdr.markForCheck();
         },
         error: (err: any) => {
           console.error('Errore invio WhatsApp:', err);
+          const backendMsg = err?.error?.error;
           this.presentToast(
-            `Impossibile inviare WhatsApp a ${patient.full_name}`,
+            backendMsg
+              ? `Errore: ${backendMsg}`
+              : `Impossibile inviare WhatsApp a ${patient.full_name}`,
             'danger',
           );
         },

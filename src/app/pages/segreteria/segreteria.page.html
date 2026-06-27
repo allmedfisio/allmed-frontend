@@ -297,8 +297,10 @@
                           [style.--background]="isSmsSent(patient.id) ? '#25D366' : 'var(--ion-color-secondary)'"
                           [style.--color]="isSmsSent(patient.id) ? '#fff' : 'var(--ion-color-primary-contrast)'"
                           (click)="sendWhatsAppMessage(patient)"
+                          [disabled]="sendingWhatsApp.has(patient.id)"
                         >
-                          <ion-icon name="logo-whatsapp"></ion-icon>
+                          <ion-spinner *ngIf="sendingWhatsApp.has(patient.id)" name="crescent"></ion-spinner>
+                          <ion-icon *ngIf="!sendingWhatsApp.has(patient.id)" name="logo-whatsapp"></ion-icon>
                         </ion-button>
                         <ion-button
                           size="small"
