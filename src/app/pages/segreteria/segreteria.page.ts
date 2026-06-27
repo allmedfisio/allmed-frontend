@@ -1007,15 +1007,43 @@ export class SegreteriaPage implements OnInit {
         },
         error: (err: any) => {
           console.error('Errore invio WhatsApp:', err);
-          const backendMsg = err?.error?.error;
           this.presentToast(
-            backendMsg
-              ? `Errore: ${backendMsg}`
-              : `Impossibile inviare WhatsApp a ${patient.full_name}`,
+            this.whatsappErrorMessage(err, patient.full_name),
             'danger',
           );
         },
       });
+  }
+
+  private whatsappErrorMessage(err: any, patientName: string): string {
+    const raw = err?.error?.error;
+
+    if (!raw) {
+      return 'Impossibile raggiungere il server. Verifica la connessione internet.';
+    }
+
+    // Messaggi specifici per ogni caso
+    if (raw === 'Servizio WhatsApp non configurato') {
+      return 'Il servizio WhatsApp non è al momento disponibile. Riprova più tardi.';
+    }
+    if (raw.includes('Errore OpenWA: 404')) {
+      return `Il numero di ${patientName} non risulta registrato su WhatsApp. Verifica che sia corretto.`;
+    }
+    if (raw.includes('Errore OpenWA: 400')) {
+      return `Il numero di ${patientName} non è stato accettato da WhatsApp. Verifica che il formato sia corretto (es. 3331234567).`;
+    }
+    if (raw.includes('Errore OpenWA: 502')) {
+      return 'Il server WhatsApp non ha risposto in tempo. Riprova tra qualche minuto.';
+    }
+    if (raw.includes('Errore OpenWA: 500')) {
+      return 'Il server WhatsApp ha riscontrato un problema interno. Riprova più tardi.';
+    }
+    if (raw.includes('Errore OpenWA:')) {
+      return 'Il server WhatsApp ha restituito un errore imprevisto. Riprova più tardi.';
+    }
+
+    // Fallback
+    return `Impossibile inviare WhatsApp a ${patientName}. Riprova più tardi.`;
   }
 
   isSmsSent(patientId: string): boolean {

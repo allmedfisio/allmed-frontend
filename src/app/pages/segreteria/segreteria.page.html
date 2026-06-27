@@ -299,7 +299,7 @@
                           (click)="sendWhatsAppMessage(patient)"
                           [disabled]="sendingWhatsApp.has(patient.id)"
                         >
-                          <ion-spinner *ngIf="sendingWhatsApp.has(patient.id)" name="crescent"></ion-spinner>
+                          <ion-spinner *ngIf="sendingWhatsApp.has(patient.id)" name="crescent" style="width:1em;height:1em"></ion-spinner>
                           <ion-icon *ngIf="!sendingWhatsApp.has(patient.id)" name="logo-whatsapp"></ion-icon>
                         </ion-button>
                         <ion-button
