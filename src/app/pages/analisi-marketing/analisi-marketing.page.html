@@ -1,13 +1,19 @@
 <ion-header>
-  <ion-toolbar>
+  <ion-toolbar color="primary">
     <ion-buttons slot="start">
-      <ion-menu-button></ion-menu-button>
+      <ion-button fill="clear" [routerLink]="['/segreteria']">
+        <ion-img
+          src="assets/logo-clinica.png"
+          style="width: 70px; height: 70px"
+        >
+        </ion-img>
+      </ion-button>
     </ion-buttons>
     <ion-title>Analisi Marketing</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
+<ion-content [fullscreen]="true" class="ion-padding">
   <!-- Loading -->
   <div class="loading-overlay" *ngIf="loading">
     <ion-spinner name="crescent"></ion-spinner>
@@ -18,28 +24,31 @@
     <ion-grid>
       <ion-row>
         <ion-col size="4">
-          <ion-card color="primary">
-            <ion-card-content class="kpi-card">
-              <div class="kpi-number">{{ stats.total_sent }}</div>
-              <div class="kpi-label">Messaggi Inviati</div>
-            </ion-card-content>
-          </ion-card>
+          <kpi-card
+            label="Messaggi Inviati"
+            [value]="stats.total_sent"
+            format="number"
+            color="primary"
+            icon="paper-plane-outline">
+          </kpi-card>
         </ion-col>
         <ion-col size="4">
-          <ion-card color="success">
-            <ion-card-content class="kpi-card">
-              <div class="kpi-number">{{ stats.total_clicked }}</div>
-              <div class="kpi-label">Click Ricevuti</div>
-            </ion-card-content>
-          </ion-card>
+          <kpi-card
+            label="Click Ricevuti"
+            [value]="stats.total_clicked"
+            format="number"
+            color="success"
+            icon="link-outline">
+          </kpi-card>
         </ion-col>
         <ion-col size="4">
-          <ion-card [color]="stats.click_rate > 10 ? 'success' : 'warning'">
-            <ion-card-content class="kpi-card">
-              <div class="kpi-number">{{ stats.click_rate }}%</div>
-              <div class="kpi-label">Tasso di Click</div>
-            </ion-card-content>
-          </ion-card>
+          <kpi-card
+            label="Tasso di Click"
+            [value]="stats.click_rate"
+            format="percentage"
+            color="secondary"
+            icon="trending-up-outline">
+          </kpi-card>
         </ion-col>
       </ion-row>
     </ion-grid>
@@ -55,25 +64,18 @@
     </ion-item>
 
     <!-- Grafico -->
-    <ion-card>
-      <ion-card-header>
-        <ion-card-title>Invii e Click per Giorno</ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <div class="chart-container">
-          <canvas
-            baseChart
-            [data]="chartData"
-            [options]="chartOptions"
-            [type]="'bar'"
-          >
-          </canvas>
-        </div>
-      </ion-card-content>
-    </ion-card>
+    <chart-card title="Invii e Click per Giorno" height="320px">
+      <canvas
+        baseChart
+        [data]="chartData"
+        [options]="chartOptions"
+        type="bar"
+      >
+      </canvas>
+    </chart-card>
 
     <!-- Tabella ultimi messaggi -->
-    <ion-card>
+    <ion-card class="card-soft">
       <ion-card-header>
         <ion-card-title>Ultimi Messaggi</ion-card-title>
       </ion-card-header>

@@ -1,23 +1,10 @@
-.kpi-card {
-  text-align: center;
-  padding: 0.5rem 0;
-
-  .kpi-number {
-    font-size: 1.8rem;
-    font-weight: 700;
-    line-height: 1.2;
-  }
-
-  .kpi-label {
-    font-size: 0.75rem;
-    opacity: 0.85;
-    margin-top: 0.25rem;
-  }
+:host {
+  --background: #f5f7fa;
 }
 
-.chart-container {
-  height: 300px;
-  position: relative;
+.card-soft {
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .text-small {

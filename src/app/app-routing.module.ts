@@ -97,7 +97,7 @@ const routes: Routes = [
       ),
     canActivate: [AuthGuardService],
     data: {
-      roles: ['admin', 'segreteria'],
+      roles: ['admin'],
     },
   },
 ];

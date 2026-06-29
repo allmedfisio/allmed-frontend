@@ -62,7 +62,7 @@
             <ion-label class="section-title">Analisi Aziendale</ion-label>
           </ion-item>
         </ion-menu-toggle>
-        <ion-menu-toggle auto-hide="false">
+        <ion-menu-toggle auto-hide="false" *ngIf="isAdmin$ | async">
           <ion-item routerLink="/analisi-marketing" detail="false">
             <ion-icon
               slot="start"
