@@ -89,6 +89,17 @@ const routes: Routes = [
       roles: ['admin'],
     },
   },
+  {
+    path: 'analisi-marketing',
+    loadChildren: () =>
+      import('./pages/analisi-marketing/analisi-marketing.module').then(
+        (m) => m.AnalisiMarketingPageModule,
+      ),
+    canActivate: [AuthGuardService],
+    data: {
+      roles: ['admin', 'segreteria'],
+    },
+  },
 ];
 
 @NgModule({

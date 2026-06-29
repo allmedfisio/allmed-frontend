@@ -1,0 +1,109 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Analisi Marketing</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <!-- Loading -->
+  <div class="loading-overlay" *ngIf="loading">
+    <ion-spinner name="crescent"></ion-spinner>
+  </div>
+
+  <ng-container *ngIf="!loading && stats">
+    <!-- KPI Cards -->
+    <ion-grid>
+      <ion-row>
+        <ion-col size="4">
+          <ion-card color="primary">
+            <ion-card-content class="kpi-card">
+              <div class="kpi-number">{{ stats.total_sent }}</div>
+              <div class="kpi-label">Messaggi Inviati</div>
+            </ion-card-content>
+          </ion-card>
+        </ion-col>
+        <ion-col size="4">
+          <ion-card color="success">
+            <ion-card-content class="kpi-card">
+              <div class="kpi-number">{{ stats.total_clicked }}</div>
+              <div class="kpi-label">Click Ricevuti</div>
+            </ion-card-content>
+          </ion-card>
+        </ion-col>
+        <ion-col size="4">
+          <ion-card [color]="stats.click_rate > 10 ? 'success' : 'warning'">
+            <ion-card-content class="kpi-card">
+              <div class="kpi-number">{{ stats.click_rate }}%</div>
+              <div class="kpi-label">Tasso di Click</div>
+            </ion-card-content>
+          </ion-card>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+
+    <!-- Filtro periodo -->
+    <ion-item>
+      <ion-label>Periodo</ion-label>
+      <ion-select [(ngModel)]="selectedDays" (ionChange)="onDaysChange()">
+        <ion-select-option [value]="7">Ultimi 7 giorni</ion-select-option>
+        <ion-select-option [value]="30">Ultimi 30 giorni</ion-select-option>
+        <ion-select-option [value]="90">Ultimi 90 giorni</ion-select-option>
+      </ion-select>
+    </ion-item>
+
+    <!-- Grafico -->
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Invii e Click per Giorno</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="chart-container">
+          <canvas
+            baseChart
+            [data]="chartData"
+            [options]="chartOptions"
+            [type]="'bar'"
+          >
+          </canvas>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Tabella ultimi messaggi -->
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Ultimi Messaggi</ion-card-title>
+      </ion-card-header>
+      <ion-card-content class="ion-no-padding">
+        <ion-list>
+          <ion-item *ngFor="let msg of stats.recent">
+            <ion-label>
+              <h2>{{ msg.patient_name }}</h2>
+              <p>{{ msg.phone }}</p>
+              <p class="text-small">
+                Inviato: {{ msg.sent_at | date:'dd/MM/yyyy HH:mm' }}
+                <span *ngIf="msg.clicked_at">
+                  · Click: {{ msg.clicked_at | date:'dd/MM/yyyy HH:mm' }}
+                </span>
+              </p>
+            </ion-label>
+            <ion-badge
+              slot="end"
+              [color]="msg.clicked_at ? 'success' : 'medium'"
+            >
+              {{ msg.clicked_at ? 'Cliccato' : 'In attesa' }}
+            </ion-badge>
+          </ion-item>
+        </ion-list>
+        <ion-item *ngIf="stats.recent.length === 0">
+          <ion-label class="ion-text-center ion-padding">
+            Nessun messaggio inviato nel periodo selezionato.
+          </ion-label>
+        </ion-item>
+      </ion-card-content>
+    </ion-card>
+  </ng-container>
+</ion-content>

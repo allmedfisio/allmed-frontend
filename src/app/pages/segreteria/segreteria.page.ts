@@ -985,7 +985,7 @@ export class SegreteriaPage implements OnInit {
     this.sendingWhatsApp = nextSending;
 
     this.whatsappService
-      .sendMessage(patient.full_name, patient.phone, landingLink)
+      .sendMessage(patient.full_name, patient.phone, landingLink, patient.id)
       .pipe(
         finalize(() => {
           const done = new Set(this.sendingWhatsApp);
