@@ -80,14 +80,8 @@ const routes: Routes = [
   },
   {
     path: 'business-analytics',
-    loadChildren: () =>
-      import('./pages/business-analytics/business-analytics.module').then(
-        (m) => m.BusinessAnalyticsPageModule,
-      ),
-    canActivate: [AuthGuardService],
-    data: {
-      roles: ['admin'],
-    },
+    redirectTo: 'segreteria',
+    pathMatch: 'full',
   },
   {
     path: 'analisi-marketing',
